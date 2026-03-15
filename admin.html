@@ -600,23 +600,46 @@ async function uploadToCloudinary(input, previewId, urlKey) {
   const file = input.files[0];
   if (!file) return;
   const previewEl = document.getElementById(previewId);
-  previewEl && (previewEl.innerHTML = '<span style="font-family:var(--font-cond);font-size:0.78rem;letter-spacing:1px;color:var(--gold)">Enviando...</span>');
+
+  // Mostra preview local imediato
+  if (file.type !== 'application/pdf') {
+    const localUrl = URL.createObjectURL(file);
+    if (previewEl) previewEl.innerHTML = `<img src="${localUrl}" style="opacity:0.5;filter:blur(1px)">`;
+  }
+
+  if (previewEl) {
+    const bar = document.createElement('div');
+    bar.style.cssText = 'font-family:var(--font-cond);font-size:0.75rem;letter-spacing:1px;color:var(--gold);margin-top:6px';
+    bar.textContent = 'Enviando para Cloudinary...';
+    bar.id = 'bar-' + previewId;
+    previewEl.appendChild(bar);
+  }
+
   const fd = new FormData();
   fd.append('file', file);
   fd.append('upload_preset', window.CLOUDINARY_UPLOAD_PRESET);
+
   try {
     const res = await fetch(`https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CLOUD_NAME}/upload`, { method:'POST', body:fd });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
     const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+
     window._uploadedUrls[urlKey] = data.secure_url;
+    console.log(`✅ Cloudinary upload OK [${urlKey}]:`, data.secure_url);
+
     if (previewEl) {
       if (file.type === 'application/pdf') {
-        previewEl.textContent = '✅ ' + file.name;
+        previewEl.innerHTML = `<div style="font-family:var(--font-cond);font-size:0.78rem;letter-spacing:1px;color:#00c864;padding:8px 0">✅ PDF enviado com sucesso</div>`;
       } else {
-        previewEl.innerHTML = `<img src="${data.secure_url}">`;
+        previewEl.innerHTML = `
+          <img src="${data.secure_url}">
+          <div style="font-family:var(--font-cond);font-size:0.72rem;letter-spacing:1px;color:#00c864;padding:4px 2px">✅ Upload concluído — clique em Salvar</div>`;
       }
     }
   } catch(e) {
-    previewEl && (previewEl.innerHTML = '<span style="color:var(--red);font-size:0.78rem">Erro no upload.</span>');
+    console.error('Cloudinary error:', e);
+    if (previewEl) previewEl.innerHTML = `<div style="font-family:var(--font-cond);font-size:0.75rem;color:var(--red);padding:6px 0">❌ Falha no upload: ${e.message}</div>`;
   }
 }
 
@@ -646,9 +669,13 @@ async function loadAdminConfig() {
 async function saveConfig(extra, msgId) {
   const { doc, setDoc } = window._firebase;
   try {
-    await setDoc(doc(window._db,'config','site'), { ..._cfg, ...extra }, { merge:true });
-    _cfg = { ..._cfg, ...extra };
-    showMsg(msgId, 'success', '✅ Salvo com sucesso!');
+    // Garante que URLs do Cloudinary estão no objeto
+    const merged = { ..._cfg, ...extra };
+    await setDoc(doc(window._db,'config','site'), merged, { merge:true });
+    _cfg = merged;
+    // Invalida cache do site para forçar reload fresco
+    try { localStorage.removeItem('adb_site_cache_v1'); } catch(e) {}
+    showMsg(msgId, 'success', '✅ Salvo! Cache limpo — site atualizado.');
   } catch(e) { showMsg(msgId, 'error', '❌ Erro: ' + e.message); }
 }
 
@@ -683,7 +710,8 @@ async function saveNews() {
   const { addDoc, collection } = window._firebase;
   try {
     await addDoc(collection(window._db,'news'), { title:v('news-title'), excerpt:v('news-excerpt'), date:v('news-date'), category:v('news-category'), imageUrl:window._uploadedUrls._newsImageUrl||'', createdAt:new Date() });
-    showMsg('msg-news','success','✅ Publicado!');
+    try { localStorage.removeItem('adb_site_cache_v1'); } catch(e) {}
+    showMsg('msg-news','success','✅ Publicado! Cache limpo.');
     ['news-title','news-excerpt','news-date','news-category'].forEach(id => document.getElementById(id).value='');
     window._uploadedUrls._newsImageUrl=''; document.getElementById('prev-news').innerHTML='';
     loadAdminNews();
@@ -727,11 +755,12 @@ async function loadAdminGames() {
 // ====================================================
 async function saveGalleryItem() {
   const url = window._uploadedUrls._galleryImageUrl;
-  if (!url) { showMsg('msg-gallery','error','❌ Faça upload da foto primeiro.'); return; }
+  if (!url) { showMsg('msg-gallery','error','❌ Aguarde o upload terminar antes de salvar.'); return; }
   const { addDoc, collection } = window._firebase;
   try {
     await addDoc(collection(window._db,'gallery'), { url, title:v('gallery-title'), createdAt:new Date() });
-    showMsg('msg-gallery','success','✅ Foto adicionada!');
+    try { localStorage.removeItem('adb_site_cache_v1'); } catch(e) {}
+    showMsg('msg-gallery','success','✅ Foto adicionada! Cache limpo.');
     document.getElementById('gallery-title').value=''; window._uploadedUrls._galleryImageUrl=''; document.getElementById('prev-gallery').innerHTML='';
   } catch(e) { showMsg('msg-gallery','error','❌ '+e.message); }
 }

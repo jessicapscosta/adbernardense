@@ -40,117 +40,159 @@
   window._auth = auth;
   window._firebase = { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, orderBy, query, limit, signInWithEmailAndPassword, signOut, onAuthStateChanged };
 
-  // Load site config from Firestore
-  async function loadSiteConfig() {
-    try {
-      const docRef = doc(db, "config", "site");
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        const cfg = snap.data();
-        applySiteConfig(cfg);
-      }
-    } catch(e) { console.log("Firebase not configured yet, using defaults"); }
-  }
+  const CACHE_KEY = "adb_site_cache_v1";
 
+  // ── Aplica config no DOM ──────────────────────────────
   function applySiteConfig(cfg) {
-    if (cfg.siteName) document.getElementById("site-title").textContent = cfg.siteName;
-    if (cfg.metaDesc) document.getElementById("meta-desc").setAttribute("content", cfg.metaDesc);
-    if (cfg.metaKeywords) document.getElementById("meta-keywords").setAttribute("content", cfg.metaKeywords);
-    if (cfg.faviconUrl) document.getElementById("favicon-link").href = cfg.faviconUrl;
-    if (cfg.logoUrl) document.querySelectorAll(".site-logo-img").forEach(el => el.src = cfg.logoUrl);
-    if (cfg.heroBgUrl) document.getElementById("hero-bg-img").src = cfg.heroBgUrl;
-    if (cfg.heroCharUrl) document.getElementById("hero-char-img").src = cfg.heroCharUrl;
-    if (cfg.heroTitle) document.getElementById("hero-title").innerHTML = cfg.heroTitle;
+    if (!cfg) return;
+    // meta
+    if (cfg.siteName)    { document.getElementById("site-title").textContent = cfg.siteName; }
+    if (cfg.metaDesc)    document.getElementById("meta-desc").setAttribute("content", cfg.metaDesc);
+    if (cfg.metaKeywords)document.getElementById("meta-keywords").setAttribute("content", cfg.metaKeywords);
+    if (cfg.faviconUrl)  document.getElementById("favicon-link").href = cfg.faviconUrl;
+    // logo — todos os elementos com a classe
+    if (cfg.logoUrl)     document.querySelectorAll(".site-logo-img").forEach(el => { el.src = cfg.logoUrl; el.style.display = ""; });
+    // hero imagens
+    if (cfg.heroBgUrl) {
+      const bg  = document.getElementById("hero-bg-img");
+      const ov  = document.getElementById("hero-bg-img-overlay");
+      if (bg)  { bg.src  = cfg.heroBgUrl; bg.style.display  = ""; }
+      if (ov)  { ov.src  = cfg.heroBgUrl; ov.style.display  = ""; }
+    }
+    if (cfg.heroCharUrl) {
+      const ch = document.getElementById("hero-char-img");
+      if (ch)  { ch.src  = cfg.heroCharUrl; ch.style.display = ""; }
+    }
+    // textos hero
+    if (cfg.heroTitle)    document.getElementById("hero-title").innerHTML   = cfg.heroTitle;
     if (cfg.heroSubtitle) document.getElementById("hero-subtitle").textContent = cfg.heroSubtitle;
-    if (cfg.heroBtnText) document.getElementById("hero-btn").textContent = cfg.heroBtnText;
-    if (cfg.heroBtnLink) document.getElementById("hero-btn").href = cfg.heroBtnLink;
-    if (cfg.instagramUrl) document.querySelectorAll(".instagram-link").forEach(el => el.href = cfg.instagramUrl);
-    if (cfg.transparencyPdfUrl) document.getElementById("transparency-link").href = cfg.transparencyPdfUrl;
-    if (cfg.aboutText) document.getElementById("about-text").textContent = cfg.aboutText;
-    if (cfg.aboutTitle) document.getElementById("about-title").textContent = cfg.aboutTitle;
-    if (cfg.footerText) document.getElementById("footer-text").textContent = cfg.footerText;
-    if (cfg.contactAddress) document.getElementById("contact-address").textContent = cfg.contactAddress;
-    if (cfg.contactPhone) document.getElementById("contact-phone").textContent = cfg.contactPhone;
-    if (cfg.contactEmail) document.getElementById("contact-email").textContent = cfg.contactEmail;
+    if (cfg.heroBtnText)  document.getElementById("hero-btn").textContent   = cfg.heroBtnText;
+    if (cfg.heroBtnLink)  document.getElementById("hero-btn").href           = cfg.heroBtnLink;
+    // links
+    if (cfg.instagramUrl)      document.querySelectorAll(".instagram-link").forEach(el => el.href = cfg.instagramUrl);
+    if (cfg.transparencyPdfUrl){
+      const tl = document.getElementById("transparency-link");
+      if (tl) tl.href = cfg.transparencyPdfUrl;
+    }
+    // textos gerais
+    if (cfg.aboutTitle)     { const el = document.getElementById("about-title");    if(el) el.textContent = cfg.aboutTitle; }
+    if (cfg.aboutText)      { const el = document.getElementById("about-text");     if(el) el.textContent = cfg.aboutText; }
+    if (cfg.footerText)     { const el = document.getElementById("footer-text");    if(el) el.textContent = cfg.footerText; }
+    if (cfg.contactAddress) { const el = document.getElementById("contact-address");if(el) el.textContent = cfg.contactAddress; }
+    if (cfg.contactPhone)   { const el = document.getElementById("contact-phone");  if(el) el.textContent = cfg.contactPhone; }
+    if (cfg.contactEmail)   { const el = document.getElementById("contact-email");  if(el) el.textContent = cfg.contactEmail; }
+    if (cfg.mapUrl) {
+      const mapEl = document.querySelector(".contact-map");
+      if (mapEl) mapEl.innerHTML = `<iframe src="${cfg.mapUrl}" allowfullscreen loading="lazy" style="width:100%;height:100%;border:none"></iframe>`;
+    }
   }
 
-  async function loadNews() {
+  // ── Cache helpers ─────────────────────────────────────
+  function saveCache(data) {
+    try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch(e) {}
+  }
+  function loadCache() {
+    try { const r = localStorage.getItem(CACHE_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  // ── News/Games/Gallery cache ──────────────────────────
+  function applyNews(items) {
+    const container = document.getElementById("news-grid");
+    if (!items || !items.length) { renderDefaultNews(); return; }
+    container.innerHTML = "";
+    items.forEach(n => {
+      container.innerHTML += `
+        <div class="news-card" data-aos>
+          <div class="news-img" style="${n.imageUrl ? `background-image:url('${n.imageUrl}')` : 'background:linear-gradient(135deg,#D32F2F,#333)'}">
+            <span class="news-tag">${n.category || "Notícia"}</span>
+          </div>
+          <div class="news-body">
+            <p class="news-date">${n.date || ""}</p>
+            <h3>${n.title || ""}</h3>
+            <p>${n.excerpt || ""}</p>
+          </div>
+        </div>`;
+    });
+    document.querySelectorAll('[data-aos]').forEach(el => aosObserver && aosObserver.observe(el));
+  }
+
+  function applyGames(items) {
+    const container = document.getElementById("games-list");
+    if (!items || !items.length) { renderDefaultGames(); return; }
+    container.innerHTML = "";
+    items.forEach(g => {
+      const isResult = g.status === "result";
+      container.innerHTML += `<div class="game-card ${isResult?'result':'upcoming'}">
+        <div class="game-date-badge">${g.date||""}</div>
+        <div class="game-teams">
+          <span class="team home">${g.home||"ADB"}</span>
+          <span class="score-or-vs">${isResult ? `${g.homeScore} × ${g.awayScore}` : "VS"}</span>
+          <span class="team away">${g.away||"Adversário"}</span>
+        </div>
+        <div class="game-info">${g.local||""} · ${g.category||""}</div>
+      </div>`;
+    });
+  }
+
+  function applyGallery(items) {
+    const container = document.getElementById("gallery-grid");
+    if (!items || !items.length) { renderDefaultGallery(); return; }
+    container.innerHTML = "";
+    items.forEach(g => {
+      container.innerHTML += `<div class="gallery-item" style="background-image:url('${g.url}')"><div class="gallery-overlay"><span>${g.title||""}</span></div></div>`;
+    });
+  }
+
+  // ── Main load: cache primeiro, Firebase em background ─
+  async function initSite() {
+    // 1. Aplica cache instantaneamente se existir
+    const cached = loadCache();
+    if (cached) {
+      applySiteConfig(cached.config || {});
+      applyNews(cached.news || []);
+      applyGames(cached.games || []);
+      applyGallery(cached.gallery || []);
+    }
+
+    // 2. Busca dados frescos do Firebase em background
     try {
-      const q = query(collection(db, "news"), orderBy("createdAt", "desc"), limit(6));
-      const snap = await getDocs(q);
-      const container = document.getElementById("news-grid");
-      container.innerHTML = "";
-      snap.forEach(d => {
-        const n = d.data();
-        container.innerHTML += `
-          <div class="news-card" data-aos>
-            <div class="news-img" style="background-image:url('${n.imageUrl || ""}')">
-              <span class="news-tag">${n.category || "Notícia"}</span>
-            </div>
-            <div class="news-body">
-              <p class="news-date">${n.date || ""}</p>
-              <h3>${n.title || ""}</h3>
-              <p>${n.excerpt || ""}</p>
-            </div>
-          </div>`;
-      });
-      if (snap.empty) renderDefaultNews();
-    } catch(e) { renderDefaultNews(); }
+      const [cfgSnap, newsSnap, gamesSnap, gallerySnap] = await Promise.all([
+        getDoc(doc(db, "config", "site")),
+        getDocs(query(collection(db, "news"),    orderBy("createdAt","desc"), limit(6))),
+        getDocs(query(collection(db, "games"),   orderBy("createdAt","desc"), limit(10))),
+        getDocs(query(collection(db, "gallery"), orderBy("createdAt","desc"), limit(12)))
+      ]);
+
+      const freshCfg    = cfgSnap.exists() ? cfgSnap.data() : {};
+      const freshNews   = newsSnap.docs.map(d    => d.data());
+      const freshGames  = gamesSnap.docs.map(d   => d.data());
+      const freshGallery= gallerySnap.docs.map(d => d.data());
+
+      // 3. Aplica dados frescos no DOM
+      applySiteConfig(freshCfg);
+      applyNews(freshNews);
+      applyGames(freshGames);
+      applyGallery(freshGallery);
+
+      // 4. Salva cache atualizado
+      saveCache({ config: freshCfg, news: freshNews, games: freshGames, gallery: freshGallery, ts: Date.now() });
+
+    } catch(e) {
+      // Se Firebase falhar e não tiver cache, mostra defaults
+      if (!cached) {
+        renderDefaultNews();
+        renderDefaultGames();
+        renderDefaultGallery();
+      }
+    }
   }
 
-  async function loadGames() {
-    try {
-      const q = query(collection(db, "games"), orderBy("date", "asc"), limit(5));
-      const snap = await getDocs(q);
-      const container = document.getElementById("games-list");
-      container.innerHTML = "";
-      snap.forEach(d => {
-        const g = d.data();
-        container.innerHTML += buildGameCard(g);
-      });
-      if (snap.empty) renderDefaultGames();
-    } catch(e) { renderDefaultGames(); }
-  }
+  window.loadSiteConfig = () => initSite();
+  window.loadNews       = () => initSite();
+  window.loadGames      = () => initSite();
+  window.loadGallery    = () => initSite();
 
-  async function loadGallery() {
-    try {
-      const q = query(collection(db, "gallery"), orderBy("createdAt", "desc"), limit(12));
-      const snap = await getDocs(q);
-      const container = document.getElementById("gallery-grid");
-      container.innerHTML = "";
-      snap.forEach(d => {
-        const g = d.data();
-        container.innerHTML += `<div class="gallery-item" style="background-image:url('${g.url}')"><div class="gallery-overlay"><span>${g.title||""}</span></div></div>`;
-      });
-      if (snap.empty) renderDefaultGallery();
-    } catch(e) { renderDefaultGallery(); }
-  }
-
-  function buildGameCard(g) {
-    const isResult = g.status === "result";
-    return `<div class="game-card ${isResult?'result':'upcoming'}">
-      <div class="game-date-badge">${g.date||""}</div>
-      <div class="game-teams">
-        <span class="team home">${g.home||"ADB"}</span>
-        <span class="score-or-vs">${isResult ? `${g.homeScore} × ${g.awayScore}` : "VS"}</span>
-        <span class="team away">${g.away||"Adversário"}</span>
-      </div>
-      <div class="game-info">${g.local||""} · ${g.category||""}</div>
-    </div>`;
-  }
-
-  window.loadSiteConfig = loadSiteConfig;
-  window.loadNews = loadNews;
-  window.loadGames = loadGames;
-  window.loadGallery = loadGallery;
-  window._buildGameCard = buildGameCard;
-
-  document.addEventListener("DOMContentLoaded", () => {
-    loadSiteConfig();
-    loadNews();
-    loadGames();
-    loadGallery();
-  });
+  document.addEventListener("DOMContentLoaded", initSite);
 </script>
 
 <style>
