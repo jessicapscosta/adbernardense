@@ -19,19 +19,18 @@
   // 🔥 CONFIGURE SEU FIREBASE AQUI
   // ====================================================
   const firebaseConfig = {
-    apiKey: "SUA_API_KEY",
-    authDomain: "SEU_AUTH_DOMAIN",
-    projectId: "SEU_PROJECT_ID",
-    storageBucket: "SEU_STORAGE_BUCKET",
-    messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-    appId: "SEU_APP_ID"
+    apiKey: "AIzaSyBqhYAU2raJxvOr8U69spjIEg0CB_mrxVM",
+    authDomain: "adb-bernardense.firebaseapp.com",
+    projectId: "adb-bernardense",
+    storageBucket: "adb-bernardense.firebasestorage.app",
+    messagingSenderId: "272028652739",
+    appId: "1:272028652739:web:46ed1fa1a73a097e21fe76",
+    measurementId: "G-BV3S9VNK99"
   };
 
-  // ====================================================
-  // ☁️ CONFIGURE SEU CLOUDINARY AQUI
-  // ====================================================
-  window.CLOUDINARY_CLOUD_NAME = "SEU_CLOUD_NAME";
-  window.CLOUDINARY_UPLOAD_PRESET = "SEU_UPLOAD_PRESET"; // unsigned preset
+  // ☁️ Cloudinary
+  window.CLOUDINARY_CLOUD_NAME = "dgqxadsmt";
+  window.CLOUDINARY_UPLOAD_PRESET = "adb_uploads";
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
