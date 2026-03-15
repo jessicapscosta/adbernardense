@@ -1,0 +1,2445 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="site-title">Associação Desportiva Bernardense</title>
+<meta name="description" id="meta-desc" content="Associação Desportiva Bernardense - Formando campeões desde 2017">
+<meta name="keywords" id="meta-keywords" content="futebol, associação, bernardense, esporte, crianças">
+<link rel="icon" type="image/x-icon" id="favicon-link" href="">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, orderBy, query, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  // ====================================================
+  // 🔥 CONFIGURE SEU FIREBASE AQUI
+  // ====================================================
+  const firebaseConfig = {
+    apiKey: "AIzaSyBqhYAU2raJxvOr8U69spjIEg0CB_mrxVM",
+    authDomain: "adb-bernardense.firebaseapp.com",
+    projectId: "adb-bernardense",
+    storageBucket: "adb-bernardense.firebasestorage.app",
+    messagingSenderId: "272028652739",
+    appId: "1:272028652739:web:46ed1fa1a73a097e21fe76",
+    measurementId: "G-BV3S9VNK99"
+  };
+
+  // ☁️ Cloudinary
+  window.CLOUDINARY_CLOUD_NAME = "dgqxadsmt";
+  window.CLOUDINARY_UPLOAD_PRESET = "adb_uploads";
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  window._db = db;
+  window._auth = auth;
+  window._firebase = { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, orderBy, query, limit, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+
+  // Load site config from Firestore
+  async function loadSiteConfig() {
+    try {
+      const docRef = doc(db, "config", "site");
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        const cfg = snap.data();
+        applySiteConfig(cfg);
+      }
+    } catch(e) { console.log("Firebase not configured yet, using defaults"); }
+  }
+
+  function applySiteConfig(cfg) {
+    if (cfg.siteName) document.getElementById("site-title").textContent = cfg.siteName;
+    if (cfg.metaDesc) document.getElementById("meta-desc").setAttribute("content", cfg.metaDesc);
+    if (cfg.metaKeywords) document.getElementById("meta-keywords").setAttribute("content", cfg.metaKeywords);
+    if (cfg.faviconUrl) document.getElementById("favicon-link").href = cfg.faviconUrl;
+    if (cfg.logoUrl) document.querySelectorAll(".site-logo-img").forEach(el => el.src = cfg.logoUrl);
+    if (cfg.heroBgUrl) document.getElementById("hero-bg-img").src = cfg.heroBgUrl;
+    if (cfg.heroCharUrl) document.getElementById("hero-char-img").src = cfg.heroCharUrl;
+    if (cfg.heroTitle) document.getElementById("hero-title").innerHTML = cfg.heroTitle;
+    if (cfg.heroSubtitle) document.getElementById("hero-subtitle").textContent = cfg.heroSubtitle;
+    if (cfg.heroBtnText) document.getElementById("hero-btn").textContent = cfg.heroBtnText;
+    if (cfg.heroBtnLink) document.getElementById("hero-btn").href = cfg.heroBtnLink;
+    if (cfg.instagramUrl) document.querySelectorAll(".instagram-link").forEach(el => el.href = cfg.instagramUrl);
+    if (cfg.transparencyPdfUrl) document.getElementById("transparency-link").href = cfg.transparencyPdfUrl;
+    if (cfg.aboutText) document.getElementById("about-text").textContent = cfg.aboutText;
+    if (cfg.aboutTitle) document.getElementById("about-title").textContent = cfg.aboutTitle;
+    if (cfg.footerText) document.getElementById("footer-text").textContent = cfg.footerText;
+    if (cfg.contactAddress) document.getElementById("contact-address").textContent = cfg.contactAddress;
+    if (cfg.contactPhone) document.getElementById("contact-phone").textContent = cfg.contactPhone;
+    if (cfg.contactEmail) document.getElementById("contact-email").textContent = cfg.contactEmail;
+  }
+
+  async function loadNews() {
+    try {
+      const q = query(collection(db, "news"), orderBy("createdAt", "desc"), limit(6));
+      const snap = await getDocs(q);
+      const container = document.getElementById("news-grid");
+      container.innerHTML = "";
+      snap.forEach(d => {
+        const n = d.data();
+        container.innerHTML += `
+          <div class="news-card" data-aos>
+            <div class="news-img" style="background-image:url('${n.imageUrl || ""}')">
+              <span class="news-tag">${n.category || "Notícia"}</span>
+            </div>
+            <div class="news-body">
+              <p class="news-date">${n.date || ""}</p>
+              <h3>${n.title || ""}</h3>
+              <p>${n.excerpt || ""}</p>
+            </div>
+          </div>`;
+      });
+      if (snap.empty) renderDefaultNews();
+    } catch(e) { renderDefaultNews(); }
+  }
+
+  async function loadGames() {
+    try {
+      const q = query(collection(db, "games"), orderBy("date", "asc"), limit(5));
+      const snap = await getDocs(q);
+      const container = document.getElementById("games-list");
+      container.innerHTML = "";
+      snap.forEach(d => {
+        const g = d.data();
+        container.innerHTML += buildGameCard(g);
+      });
+      if (snap.empty) renderDefaultGames();
+    } catch(e) { renderDefaultGames(); }
+  }
+
+  async function loadGallery() {
+    try {
+      const q = query(collection(db, "gallery"), orderBy("createdAt", "desc"), limit(12));
+      const snap = await getDocs(q);
+      const container = document.getElementById("gallery-grid");
+      container.innerHTML = "";
+      snap.forEach(d => {
+        const g = d.data();
+        container.innerHTML += `<div class="gallery-item" style="background-image:url('${g.url}')"><div class="gallery-overlay"><span>${g.title||""}</span></div></div>`;
+      });
+      if (snap.empty) renderDefaultGallery();
+    } catch(e) { renderDefaultGallery(); }
+  }
+
+  function buildGameCard(g) {
+    const isResult = g.status === "result";
+    return `<div class="game-card ${isResult?'result':'upcoming'}">
+      <div class="game-date-badge">${g.date||""}</div>
+      <div class="game-teams">
+        <span class="team home">${g.home||"ADB"}</span>
+        <span class="score-or-vs">${isResult ? `${g.homeScore} × ${g.awayScore}` : "VS"}</span>
+        <span class="team away">${g.away||"Adversário"}</span>
+      </div>
+      <div class="game-info">${g.local||""} · ${g.category||""}</div>
+    </div>`;
+  }
+
+  window.loadSiteConfig = loadSiteConfig;
+  window.loadNews = loadNews;
+  window.loadGames = loadGames;
+  window.loadGallery = loadGallery;
+  window._buildGameCard = buildGameCard;
+
+  document.addEventListener("DOMContentLoaded", () => {
+    loadSiteConfig();
+    loadNews();
+    loadGames();
+    loadGallery();
+  });
+</script>
+
+<style>
+/* ============================================
+   CSS VARIABLES & RESET
+   ============================================ */
+:root {
+  --red: #D32F2F;
+  --red-light: #EF5350;
+  --red-dark: #B71C1C;
+  --black: #0A0A0A;
+  --black2: #141414;
+  --black3: #1E1E1E;
+  --gold: #FFD600;
+  --gold2: #FFA000;
+  --white: #FFFFFF;
+  --white2: #F5F5F5;
+  --gray: #888;
+  --gray2: #555;
+  --stripe1: #D32F2F;
+  --stripe2: #FFFFFF;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-cond: 'Barlow Condensed', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+  cursor: none;
+}
+
+/* ============================================
+   CUSTOM CURSOR — BALL
+   ============================================ */
+#cursor-ball {
+  position: fixed;
+  width: 28px;
+  height: 28px;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: transform 0.05s;
+}
+#cursor-trail {
+  position: fixed;
+  width: 10px;
+  height: 10px;
+  background: var(--red);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%, -50%);
+  opacity: 0.5;
+  transition: left 0.12s ease, top 0.12s ease;
+}
+
+/* ============================================
+   SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--black2); }
+::-webkit-scrollbar-thumb { background: var(--red); border-radius: 3px; }
+
+/* ============================================
+   NAVIGATION
+   ============================================ */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  padding: 0 5%;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10,10,10,0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 2px solid rgba(211,47,47,0.3);
+  transition: all 0.3s;
+}
+nav.scrolled {
+  background: rgba(10,10,10,0.97);
+  border-bottom-color: var(--red);
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+.nav-logo img.site-logo-img {
+  height: 50px;
+  width: 50px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(211,47,47,0.6));
+}
+.nav-logo-text {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--white);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.nav-logo-sub {
+  font-size: 0.6rem;
+  font-family: var(--font-cond);
+  color: var(--gold);
+  letter-spacing: 4px;
+  display: block;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  list-style: none;
+}
+.nav-links a {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--white2);
+  text-decoration: none;
+  position: relative;
+  transition: color 0.2s;
+}
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 0; right: 100%;
+  height: 2px;
+  background: var(--red);
+  transition: right 0.3s;
+}
+.nav-links a:hover { color: var(--red); }
+.nav-links a:hover::after { right: 0; }
+.nav-instagram {
+  background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color: white !important;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem !important;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.nav-instagram::after { display: none !important; }
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 5px;
+}
+.nav-hamburger span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--white);
+  transition: all 0.3s;
+}
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 70px; left: 0; right: 0;
+  background: rgba(10,10,10,0.97);
+  padding: 20px 5%;
+  z-index: 999;
+  border-bottom: 2px solid var(--red);
+}
+.mobile-menu.open { display: block; }
+.mobile-menu a {
+  display: block;
+  padding: 12px 0;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--white2);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: color 0.2s, padding-left 0.2s;
+}
+.mobile-menu a:hover { color: var(--red); padding-left: 10px; }
+
+/* ============================================
+   HERO
+   ============================================ */
+#hero {
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 100px 5% 60px;
+}
+
+/* Hero background layers */
+.hero-bg-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+#hero-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.18;
+}
+.hero-gradient-overlay {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 60% 80% at 75% 50%, rgba(211,47,47,0.15) 0%, transparent 70%),
+    linear-gradient(to right, rgba(10,10,10,1) 35%, rgba(10,10,10,0.4) 65%, rgba(10,10,10,0.1) 100%);
+}
+
+/* Animated stripe lines */
+.hero-stripes {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+.stripe {
+  position: absolute;
+  width: 3px;
+  top: 0; bottom: 0;
+  opacity: 0.07;
+  background: var(--red);
+  animation: stripeFloat 4s ease-in-out infinite;
+}
+.stripe:nth-child(1) { left: 15%; animation-delay: 0s; }
+.stripe:nth-child(2) { left: 30%; animation-delay: 0.5s; width: 2px; opacity: 0.05; }
+.stripe:nth-child(3) { left: 45%; animation-delay: 1s; }
+.stripe:nth-child(4) { left: 60%; animation-delay: 1.5s; width: 2px; }
+.stripe:nth-child(5) { left: 75%; animation-delay: 2s; opacity: 0.05; }
+.stripe:nth-child(6) { left: 85%; animation-delay: 2.5s; width: 1px; opacity: 0.04; }
+
+@keyframes stripeFloat {
+  0%, 100% { transform: scaleY(1); opacity: 0.07; }
+  50% { transform: scaleY(0.95); opacity: 0.12; }
+}
+
+/* Floating particles */
+.hero-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  animation: particleDrift linear infinite;
+}
+.particle.red { background: var(--red); }
+.particle.gold { background: var(--gold); }
+.particle.white { background: rgba(255,255,255,0.4); }
+
+@keyframes particleDrift {
+  0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(-20px) rotate(720deg); opacity: 0; }
+}
+
+/* Hero content */
+.hero-content {
+  position: relative;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: center;
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+.hero-left { }
+.hero-eyebrow {
+  font-family: var(--font-cond);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 5px;
+  color: var(--gold);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  animation: fadeSlideUp 0.8s ease both;
+}
+.hero-eyebrow::before {
+  content: '';
+  display: block;
+  width: 30px;
+  height: 2px;
+  background: var(--gold);
+}
+#hero-title {
+  font-family: var(--font-display);
+  font-size: clamp(3.5rem, 7vw, 7rem);
+  line-height: 0.9;
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+  animation: fadeSlideUp 0.8s 0.15s ease both;
+}
+#hero-title .red { color: var(--red); }
+#hero-title .gold { color: var(--gold); }
+#hero-subtitle {
+  font-family: var(--font-body);
+  font-size: 1.05rem;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.6;
+  max-width: 440px;
+  margin-bottom: 36px;
+  animation: fadeSlideUp 0.8s 0.3s ease both;
+}
+.hero-buttons {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  animation: fadeSlideUp 0.8s 0.45s ease both;
+}
+#hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--red);
+  color: var(--white);
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 32px;
+  border-radius: 4px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+#hero-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.15) 50%, transparent 60%);
+  transform: translateX(-100%);
+  transition: transform 0.5s;
+}
+#hero-btn:hover { background: var(--red-dark); transform: translateY(-2px); box-shadow: 0 10px 30px rgba(211,47,47,0.4); }
+#hero-btn:hover::before { transform: translateX(100%); }
+
+.hero-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--white);
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 32px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+.hero-btn-secondary:hover { border-color: var(--white); background: rgba(255,255,255,0.08); }
+
+/* Hero floating tags */
+.hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 30px;
+  animation: fadeSlideUp 0.8s 0.6s ease both;
+}
+.hero-tag {
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: 1px solid;
+  animation: tagFloat ease-in-out infinite;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.hero-tag svg { width: 13px; height: 13px; flex-shrink: 0; }
+.hero-tag.tag-red { color: var(--red); border-color: var(--red); background: rgba(211,47,47,0.1); animation-duration: 3s; }
+.hero-tag.tag-gold { color: var(--gold); border-color: var(--gold); background: rgba(255,214,0,0.08); animation-duration: 3.5s; animation-delay: 0.3s; }
+.hero-tag.tag-white { color: rgba(255,255,255,0.7); border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); animation-duration: 4s; animation-delay: 0.6s; }
+
+@keyframes tagFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+/* Hero right — image stack */
+.hero-right {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 620px;
+  animation: fadeSlideUp 0.8s 0.2s ease both;
+}
+
+/* Glow pulsante */
+.hero-glow {
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(211,47,47,0.35) 0%, rgba(211,47,47,0.1) 40%, transparent 70%);
+  animation: glowPulse 2.5s ease-in-out infinite;
+  z-index: 1;
+}
+.hero-glow2 {
+  position: absolute;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,214,0,0.12) 0%, transparent 70%);
+  animation: glowPulse 2.5s 0.8s ease-in-out infinite;
+  z-index: 1;
+}
+@keyframes glowPulse {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50% { transform: scale(1.15); opacity: 1; }
+}
+
+/* Ring decorativo */
+.hero-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid;
+  animation: ringRotate linear infinite;
+  z-index: 2;
+}
+.hero-ring-1 {
+  width: 460px; height: 460px;
+  border-color: rgba(211,47,47,0.25);
+  animation-duration: 20s;
+}
+.hero-ring-2 {
+  width: 380px; height: 380px;
+  border-color: rgba(255,214,0,0.15);
+  animation-duration: 15s;
+  animation-direction: reverse;
+  border-style: dashed;
+}
+@keyframes ringRotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Orbit dots */
+.orbit-dot {
+  position: absolute;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  z-index: 3;
+  animation: orbitDot linear infinite;
+}
+.orbit-dot:nth-child(1) { animation-duration: 6s; top: 50%; left: 50%; margin: -230px 0 0 -4px; transform-origin: 4px 230px; }
+.orbit-dot:nth-child(2) { animation-duration: 8s; animation-direction: reverse; background: var(--gold); top: 50%; left: 50%; margin: -190px 0 0 -4px; transform-origin: 4px 190px; }
+@keyframes orbitDot {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Floating chips around hero */
+.hero-float-chip {
+  position: absolute;
+  background: rgba(10,10,10,0.85);
+  border: 1px solid rgba(211,47,47,0.4);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--white);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(8px);
+  z-index: 10;
+  white-space: nowrap;
+  animation: chipFloat ease-in-out infinite;
+}
+.hero-float-chip .chip-icon { font-size: 1rem; }
+.hero-float-chip.chip-1 { top: 12%; right: 0%; animation-duration: 3.2s; }
+.hero-float-chip.chip-2 { bottom: 28%; right: -2%; animation-duration: 4s; animation-delay: 0.5s; }
+.hero-float-chip.chip-3 { top: 35%; left: -5%; animation-duration: 3.7s; animation-delay: 1s; }
+.hero-float-chip.chip-4 { bottom: 15%; left: 5%; animation-duration: 4.3s; animation-delay: 1.5s; border-color: rgba(255,214,0,0.4); }
+
+@keyframes chipFloat {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-10px) rotate(1deg); }
+}
+
+#hero-bg-img-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 3;
+  opacity: 0.22;
+  filter: blur(1px);
+}
+#hero-char-img {
+  position: relative;
+  z-index: 5;
+  height: 600px;
+  max-height: 80vh;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 20px 60px rgba(211,47,47,0.5)) drop-shadow(0 0 30px rgba(0,0,0,0.8));
+  animation: charFloat 4s ease-in-out infinite;
+}
+@keyframes charFloat {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-18px) scale(1.01); }
+}
+
+/* ============================================
+   SECTION COMMON
+   ============================================ */
+section { padding: 90px 5%; }
+.section-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+.section-tag {
+  display: inline-block;
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 5px;
+  text-transform: uppercase;
+  color: var(--gold2);
+  background: rgba(211,47,47,0.07);
+  border: 1px solid rgba(211,47,47,0.2);
+  padding: 5px 14px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+}
+/* on white sections, override */
+.section-light .section-tag { color: var(--red-dark); background: rgba(211,47,47,0.07); border-color: rgba(211,47,47,0.25); }
+.section-light .section-title { color: var(--black); }
+.section-light .section-desc { color: #555; }
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--white);
+  line-height: 1;
+}
+.section-title span { color: var(--red); }
+.section-line {
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--red), var(--gold));
+  margin: 16px auto 0;
+  border-radius: 2px;
+}
+.section-desc {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.6);
+  margin-top: 14px;
+  max-width: 520px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+/* ============================================
+   STATS BAR
+   ============================================ */
+#stats {
+  background: var(--red);
+  padding: 30px 5%;
+  position: relative;
+  overflow: hidden;
+}
+#stats::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 20px,
+    rgba(0,0,0,0.08) 20px,
+    rgba(0,0,0,0.08) 21px
+  );
+}
+.stats-grid {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  gap: 60px;
+  flex-wrap: wrap;
+}
+.stat-item {
+  text-align: center;
+}
+.stat-number {
+  font-family: var(--font-display);
+  font-size: 3rem;
+  color: var(--white);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.stat-label {
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.8);
+  margin-top: 4px;
+}
+
+/* ============================================
+   ABOUT  — seção BRANCA
+   ============================================ */
+#about {
+  background: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+}
+#about::before {
+  content: 'ADB';
+  position: absolute;
+  font-family: var(--font-display);
+  font-size: 25vw;
+  color: rgba(211,47,47,0.04);
+  right: -5%;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  line-height: 1;
+  letter-spacing: -10px;
+}
+.about-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.about-img-stack {
+  position: relative;
+  height: 480px;
+}
+.about-img-main {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  filter: grayscale(20%);
+}
+.about-img-badge {
+  position: absolute;
+  bottom: -20px;
+  right: -20px;
+  background: var(--red);
+  padding: 20px;
+  border-radius: 4px;
+  text-align: center;
+}
+.about-img-badge strong {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  color: var(--white);
+  display: block;
+  line-height: 1;
+}
+.about-img-badge span {
+  font-family: var(--font-cond);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: rgba(255,255,255,0.8);
+  text-transform: uppercase;
+}
+.about-logo-overlay {
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  width: 90px;
+  height: 90px;
+  background: var(--white);
+  border: 3px solid var(--red);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  box-shadow: 0 4px 20px rgba(211,47,47,0.2);
+}
+.about-logo-overlay img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+#about-title {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  color: var(--black);
+}
+#about-text {
+  font-size: 1rem;
+  color: #444;
+  line-height: 1.8;
+  margin-bottom: 24px;
+}
+.about-pillars {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 24px;
+}
+.pillar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-cond);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #333;
+}
+.pillar-icon {
+  width: 36px; height: 36px;
+  background: var(--red);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.pillar-icon svg { width: 18px; height: 18px; }
+
+/* ============================================
+   NEWS
+   ============================================ */
+#news { background: var(--black); }
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.news-card {
+  background: var(--black3);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.06);
+  transition: all 0.3s;
+  cursor: pointer;
+}
+.news-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--red);
+  box-shadow: 0 20px 40px rgba(211,47,47,0.2);
+}
+.news-img {
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  background-color: #2a2a2a;
+  position: relative;
+  overflow: hidden;
+}
+.news-img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.5), transparent);
+}
+.news-tag {
+  position: absolute;
+  top: 12px; left: 12px;
+  background: var(--red);
+  color: var(--white);
+  font-family: var(--font-cond);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  z-index: 1;
+}
+.news-body { padding: 20px; }
+.news-date {
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.news-body h3 {
+  font-family: var(--font-cond);
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1.3;
+  margin-bottom: 8px;
+  color: var(--white);
+}
+.news-body p {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.55);
+  line-height: 1.5;
+}
+
+/* ============================================
+   NEWS  — fundo CINZA CLARO
+   ============================================ */
+#news { background: #F3F4F6; }
+.news-card {
+  background: #FFFFFF;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.07);
+  transition: all 0.3s;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.news-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--red);
+  box-shadow: 0 20px 40px rgba(211,47,47,0.15);
+}
+.news-img {
+  height: 200px;
+  background-size: cover;
+  background-position: center;
+  background-color: #ddd;
+  position: relative;
+  overflow: hidden;
+}
+.news-img::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
+}
+.news-tag {
+  position: absolute;
+  top: 12px; left: 12px;
+  background: var(--red);
+  color: var(--white);
+  font-family: var(--font-cond);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  z-index: 1;
+}
+.news-body { padding: 20px; }
+.news-date {
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--red);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.news-body h3 {
+  font-family: var(--font-cond);
+  font-size: 1.15rem;
+  font-weight: 900;
+  line-height: 1.3;
+  margin-bottom: 8px;
+  color: var(--black);
+}
+.news-body p {
+  font-size: 0.9rem;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* ============================================
+   GAMES  — fundo PRETO
+   ============================================ */
+#games {
+  background: var(--black);
+}
+.games-container {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.game-card {
+  background: var(--black3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 20px 28px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+.game-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+  background: var(--gray2);
+}
+.game-card.result::before { background: var(--red); }
+.game-card.upcoming::before { background: var(--gold); }
+.game-card:hover { transform: translateX(4px); border-color: rgba(211,47,47,0.3); }
+.game-date-badge {
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--gold);
+  text-transform: uppercase;
+  min-width: 80px;
+  text-align: center;
+}
+.game-teams {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.team {
+  font-family: var(--font-cond);
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.team.home { color: var(--red); }
+.team.away { color: rgba(255,255,255,0.8); }
+.score-or-vs {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--white);
+  letter-spacing: 3px;
+  padding: 0 8px;
+}
+.game-info {
+  font-size: 0.8rem;
+  color: var(--gray);
+  font-family: var(--font-cond);
+  letter-spacing: 1px;
+  min-width: 120px;
+  text-align: right;
+}
+
+/* ============================================
+   GALLERY  — fundo BRANCO
+   ============================================ */
+#gallery { background: #FFFFFF; }
+.gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.gallery-item {
+  aspect-ratio: 1;
+  background-size: cover;
+  background-position: center;
+  background-color: #2a2a2a;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.gallery-item:nth-child(1) { grid-column: span 2; grid-row: span 2; }
+.gallery-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(211,47,47,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.gallery-overlay span {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+  color: var(--white);
+  text-align: center;
+  padding: 0 16px;
+}
+.gallery-item:hover .gallery-overlay { opacity: 1; }
+
+/* ============================================
+   INSTAGRAM FEED  — fundo CINZA CLARO
+   ============================================ */
+#instagram { background: #F3F4F6; }
+.instagram-feed-note {
+  text-align: center;
+  color: #888;
+  font-family: var(--font-cond);
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+  margin-top: 20px;
+}
+.instagram-btn-wrap {
+  text-align: center;
+  margin-top: 32px;
+}
+.btn-instagram {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color: var(--white);
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  text-decoration: none;
+  padding: 14px 36px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+.btn-instagram:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(220,39,67,0.4); }
+/* Instagram embed placeholder */
+.instagram-grid-placeholder {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  max-width: 900px;
+  margin: 0 auto 24px;
+}
+.ig-placeholder-item {
+  aspect-ratio: 1;
+  background: #E8E9EC;
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.07);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(0,0,0,0.2);
+  cursor: pointer;
+  transition: all 0.3s;
+  overflow: hidden;
+}
+.ig-placeholder-item svg { width: 28px; height: 28px; }
+.ig-placeholder-item:hover { border-color: rgba(211,47,47,0.4); }
+.ig-placeholder-item img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ============================================
+   ENROLLMENT
+   ============================================ */
+#enrollment {
+  background: var(--red);
+  position: relative;
+  overflow: hidden;
+}
+#enrollment::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    -45deg, transparent, transparent 20px,
+    rgba(0,0,0,0.07) 20px, rgba(0,0,0,0.07) 21px
+  );
+}
+.enrollment-inner {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: start;
+}
+.enrollment-title {
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  line-height: 1;
+  margin-bottom: 16px;
+}
+.enrollment-desc {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.7;
+}
+.enrollment-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.form-group label {
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.8);
+}
+.form-group input, .form-group select, .form-group textarea {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 4px;
+  padding: 12px 14px;
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  transition: border-color 0.2s;
+  outline: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--white);
+  background: rgba(0,0,0,0.35);
+}
+.form-group select option { background: var(--black2); color: var(--white); }
+.btn-submit {
+  background: var(--black);
+  color: var(--white);
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-submit:hover { background: var(--gold); color: var(--black); transform: translateY(-2px); }
+
+/* ============================================
+   CONTACT  — fundo BRANCO
+   ============================================ */
+#contact { background: #FFFFFF; }
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 60px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.contact-info { }
+.contact-item {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.contact-icon {
+  width: 44px; height: 44px;
+  background: var(--red);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.contact-icon svg { width: 20px; height: 20px; }
+.contact-label {
+  font-family: var(--font-cond);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 4px;
+}
+.contact-value {
+  font-size: 0.95rem;
+  color: #333;
+}
+.contact-map {
+  border-radius: 10px;
+  overflow: hidden;
+  height: 320px;
+  background: #eee;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.contact-map iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+.contact-map-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  color: #aaa;
+  font-family: var(--font-cond);
+  font-size: 0.9rem;
+  letter-spacing: 2px;
+}
+
+/* ============================================
+   TRANSPARENCY LINK
+   ============================================ */
+.transparency-bar {
+  background: rgba(255,214,0,0.08);
+  border-top: 1px solid rgba(255,214,0,0.2);
+  border-bottom: 1px solid rgba(255,214,0,0.2);
+  padding: 16px 5%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.transparency-bar a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-cond);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.transparency-bar a:hover { color: var(--white); }
+
+/* ============================================
+   FOOTER
+   ============================================ */
+footer {
+  background: var(--black);
+  padding: 50px 5% 24px;
+  border-top: 2px solid var(--red);
+}
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 50px;
+  padding-bottom: 40px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.footer-brand { }
+.footer-brand img.site-logo-img {
+  height: 70px;
+  width: 70px;
+  object-fit: contain;
+  margin-bottom: 14px;
+}
+.footer-brand-name {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  letter-spacing: 2px;
+  color: var(--white);
+  margin-bottom: 6px;
+}
+#footer-text {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.5);
+  line-height: 1.6;
+  max-width: 280px;
+}
+.footer-col h4 {
+  font-family: var(--font-cond);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 16px;
+}
+.footer-col ul { list-style: none; }
+.footer-col ul li { margin-bottom: 8px; }
+.footer-col ul a {
+  font-size: 0.9rem;
+  color: rgba(255,255,255,0.55);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.footer-col ul a:hover { color: var(--white); }
+.footer-bottom {
+  max-width: 1200px;
+  margin: 24px auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.footer-copy {
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.3);
+  font-family: var(--font-cond);
+  letter-spacing: 1px;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+[data-aos] {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+[data-aos].visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ============================================
+   ADMIN PANEL
+   ============================================ */
+#admin-panel {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 99997;
+  background: var(--black);
+  overflow-y: auto;
+}
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  background: var(--black2);
+  border-bottom: 2px solid var(--red);
+  padding: 0 28px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 10;
+}
+.admin-topbar h1 {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  letter-spacing: 3px;
+  color: var(--white);
+}
+.admin-topbar h1 span { color: var(--red); }
+.admin-logout {
+  background: var(--red);
+  color: var(--white);
+  border: none;
+  font-family: var(--font-cond);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  padding: 8px 18px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.admin-logout:hover { background: var(--red-dark); }
+.admin-body {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - 60px);
+}
+.admin-sidebar {
+  background: var(--black2);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  padding: 24px 0;
+}
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  font-family: var(--font-cond);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  cursor: pointer;
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+.admin-nav-item:hover, .admin-nav-item.active {
+  color: var(--white);
+  background: rgba(211,47,47,0.1);
+  border-left-color: var(--red);
+}
+.admin-main {
+  padding: 32px;
+}
+.admin-section { display: none; }
+.admin-section.active { display: block; }
+.admin-section-title {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  letter-spacing: 2px;
+  color: var(--white);
+  margin-bottom: 24px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.admin-card {
+  background: var(--black3);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.admin-card h3 {
+  font-family: var(--font-cond);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 16px;
+}
+.admin-field {
+  margin-bottom: 16px;
+}
+.admin-field label {
+  display: block;
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 6px;
+}
+.admin-field input, .admin-field textarea, .admin-field select {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  padding: 10px 12px;
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.admin-field input:focus, .admin-field textarea:focus {
+  border-color: var(--red);
+}
+.admin-field textarea { resize: vertical; min-height: 80px; }
+.admin-field input[type="file"] { padding: 8px; }
+.btn-admin {
+  background: var(--red);
+  color: var(--white);
+  border: none;
+  font-family: var(--font-cond);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 10px 24px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-admin:hover { background: var(--red-dark); transform: translateY(-1px); }
+.btn-admin.secondary {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  color: rgba(255,255,255,0.7);
+}
+.btn-admin.secondary:hover { border-color: var(--white); color: var(--white); background: rgba(255,255,255,0.05); }
+.btn-admin.gold { background: var(--gold); color: var(--black); }
+.admin-upload-preview {
+  margin-top: 10px;
+  max-width: 200px;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.admin-upload-preview img { width: 100%; display: block; }
+.admin-msg {
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-family: var(--font-cond);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-top: 12px;
+  display: none;
+}
+.admin-msg.success { background: rgba(0,200,100,0.15); color: #00c864; border: 1px solid rgba(0,200,100,0.3); }
+.admin-msg.error { background: rgba(211,47,47,0.15); color: var(--red); border: 1px solid rgba(211,47,47,0.3); }
+.news-admin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.news-admin-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 4px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+.news-admin-item-title {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--white);
+}
+.news-admin-item-date {
+  font-size: 0.8rem;
+  color: var(--gray);
+  font-family: var(--font-cond);
+  letter-spacing: 1px;
+}
+.btn-del {
+  background: transparent;
+  border: 1px solid rgba(211,47,47,0.4);
+  color: var(--red);
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 5px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.btn-del:hover { background: var(--red); color: var(--white); }
+.seo-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.admin-login-screen {
+  position: fixed;
+  inset: 0;
+  background: var(--black);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.admin-login-card {
+  background: var(--black3);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 40px 48px;
+  width: 360px;
+  text-align: center;
+}
+.admin-login-card img {
+  width: 80px; height: 80px;
+  object-fit: contain;
+  margin-bottom: 20px;
+}
+.admin-login-card h2 {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  letter-spacing: 3px;
+  margin-bottom: 4px;
+}
+.admin-login-card p {
+  font-size: 0.8rem;
+  color: var(--gray);
+  font-family: var(--font-cond);
+  letter-spacing: 2px;
+  margin-bottom: 28px;
+}
+.admin-login-card input {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  padding: 12px 14px;
+  color: var(--white);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  outline: none;
+  margin-bottom: 12px;
+  transition: border-color 0.2s;
+}
+.admin-login-card input:focus { border-color: var(--red); }
+.admin-login-card button {
+  width: 100%;
+  background: var(--red);
+  color: var(--white);
+  border: none;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 3px;
+  padding: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 4px;
+}
+.admin-login-card button:hover { background: var(--red-dark); }
+.admin-login-error {
+  margin-top: 12px;
+  color: var(--red);
+  font-size: 0.8rem;
+  font-family: var(--font-cond);
+  letter-spacing: 1px;
+  display: none;
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 900px) {
+  .hero-content { grid-template-columns: 1fr; text-align: center; }
+  .hero-left { order: 2; }
+  .hero-right { order: 1; height: 380px; }
+  #hero-char-img { height: 360px; }
+  .hero-glow { width: 320px; height: 320px; }
+  .hero-ring-1 { width: 300px; height: 300px; }
+  .hero-ring-2 { width: 240px; height: 240px; }
+  #hero-subtitle { margin: 0 auto 28px; }
+  .hero-buttons { justify-content: center; }
+  .hero-tags { justify-content: center; }
+  .hero-float-chip.chip-3, .hero-float-chip.chip-4 { display: none; }
+  .about-grid { grid-template-columns: 1fr; gap: 40px; }
+  .about-img-stack { height: 300px; }
+  .enrollment-inner { grid-template-columns: 1fr; gap: 30px; }
+  .contact-grid { grid-template-columns: 1fr; gap: 30px; }
+  .footer-inner { grid-template-columns: 1fr; gap: 30px; }
+  .gallery-grid { grid-template-columns: repeat(2, 1fr); }
+  .gallery-item:nth-child(1) { grid-column: span 1; grid-row: span 1; }
+  .nav-links { display: none; }
+  .nav-hamburger { display: flex; }
+  .admin-body { grid-template-columns: 1fr; }
+  .admin-sidebar { display: none; }
+  .seo-grid { grid-template-columns: 1fr; }
+  .instagram-grid-placeholder { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div id="cursor-ball">
+  <svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="14" cy="14" r="13" fill="white" stroke="#ccc" stroke-width="0.5"/>
+    <path d="M14 4 C10 7, 8 10, 9 14 C10 18, 13 20, 14 20 C15 20, 18 18, 19 14 C20 10, 18 7, 14 4Z" fill="#222"/>
+    <path d="M4 11 C7 9, 9 9, 11 11 C9 14, 7 16, 4 16Z" fill="#222"/>
+    <path d="M24 11 C21 9, 19 9, 17 11 C19 14, 21 16, 24 16Z" fill="#222"/>
+    <path d="M9 21 C11 19, 13 19, 14 20 C15 19, 17 19, 19 21 C17 23, 15 24, 14 24 C13 24, 11 23, 9 21Z" fill="#222"/>
+  </svg>
+</div>
+<div id="cursor-trail"></div>
+
+<!-- ============ NAVIGATION ============ -->
+<nav id="main-nav">
+  <a href="#" class="nav-logo">
+    <img src="" alt="ADB Logo" class="site-logo-img" id="nav-logo-img" 
+         onerror="this.style.display='none'"
+         style="background:transparent">
+    <div>
+      <span class="nav-logo-text">ADB</span>
+      <span class="nav-logo-sub">Bernardense</span>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#about">Sobre</a></li>
+    <li><a href="#news">Notícias</a></li>
+    <li><a href="#games">Jogos</a></li>
+    <li><a href="#gallery">Galeria</a></li>
+    <li><a href="#enrollment">Inscrição</a></li>
+    <li><a href="#contact">Contato</a></li>
+    <li><a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="nav-instagram instagram-link">📷 Instagram</a></li>
+  </ul>
+  <div class="nav-hamburger" onclick="toggleMobileMenu()">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <a href="#about" onclick="toggleMobileMenu()">Sobre</a>
+  <a href="#news" onclick="toggleMobileMenu()">Notícias</a>
+  <a href="#games" onclick="toggleMobileMenu()">Jogos</a>
+  <a href="#gallery" onclick="toggleMobileMenu()">Galeria</a>
+  <a href="#enrollment" onclick="toggleMobileMenu()">Inscrição</a>
+  <a href="#contact" onclick="toggleMobileMenu()">Contato</a>
+  <a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="instagram-link">📷 Instagram</a>
+</div>
+
+<!-- ============ HERO ============ -->
+<section id="hero">
+  <div class="hero-bg-layer">
+    <img id="hero-bg-img" src="" alt="" onerror="this.style.display='none'">
+    <div class="hero-gradient-overlay"></div>
+  </div>
+
+  <div class="hero-stripes">
+    <div class="stripe"></div><div class="stripe"></div>
+    <div class="stripe"></div><div class="stripe"></div>
+    <div class="stripe"></div><div class="stripe"></div>
+  </div>
+
+  <div class="hero-particles" id="hero-particles"></div>
+
+  <div class="hero-content">
+    <div class="hero-left">
+      <div class="hero-eyebrow">Associação Desportiva · Desde 2017</div>
+      <h1 id="hero-title">FORMANDO<br><span class="red">CAMPEÕES</span><br><span class="gold">DO FUTURO</span></h1>
+      <p id="hero-subtitle">Desenvolvemos crianças através do futebol, cultivando disciplina, respeito e amor pelo esporte.</p>
+      <div class="hero-buttons">
+        <a href="inscricao.html" id="hero-btn">Inscreva-se Agora</a>
+        <a href="#about" class="hero-btn-secondary">Conheça a ADB</a>
+      </div>
+      <div class="hero-tags">
+        <span class="hero-tag tag-red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+          Futebol
+        </span>
+        <span class="hero-tag tag-gold">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Excelência
+        </span>
+        <span class="hero-tag tag-white">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Paixão
+        </span>
+        <span class="hero-tag tag-red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>
+          Campeões
+        </span>
+        <span class="hero-tag tag-gold">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Comunidade
+        </span>
+      </div>
+    </div>
+
+    <div class="hero-right">
+      <div class="hero-glow"></div>
+      <div class="hero-glow2"></div>
+      <div class="hero-ring hero-ring-1">
+        <div class="orbit-dot"></div>
+        <div class="orbit-dot"></div>
+      </div>
+      <div class="hero-ring hero-ring-2"></div>
+      <!-- Hero BG image (overlay behind char) -->
+      <img id="hero-bg-img-overlay" src="" alt="" onerror="this.style.display='none'">
+      <!-- Hero character -->
+      <img id="hero-char-img" src="" alt="Mascote ADB" onerror="this.style.display='none'">
+
+      <!-- Floating chips -->
+      <div class="hero-float-chip chip-1">
+        <span class="chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg></span> Futebol Infantil
+      </div>
+      <div class="hero-float-chip chip-2">
+        <span class="chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></span> Campeões 2023
+      </div>
+      <div class="hero-float-chip chip-3">
+        <span class="chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> +200 Atletas
+      </div>
+      <div class="hero-float-chip chip-4">
+        <span class="chip-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span> Desde 2017
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ STATS ============ -->
+<div id="stats">
+  <div class="stats-grid">
+    <div class="stat-item"><div class="stat-number">200+</div><div class="stat-label">Atletas</div></div>
+    <div class="stat-item"><div class="stat-number">7</div><div class="stat-label">Anos de história</div></div>
+    <div class="stat-item"><div class="stat-number">15+</div><div class="stat-label">Títulos</div></div>
+    <div class="stat-item"><div class="stat-number">∞</div><div class="stat-label">Paixão</div></div>
+  </div>
+</div>
+
+<!-- ============ ABOUT ============ -->
+<section id="about" class="section-light">
+  <div class="about-grid">
+    <div class="about-img-stack" data-aos>
+      <img class="about-img-main site-logo-img" src="" alt="Associação Desportiva Bernardense" 
+           onerror="this.style.display='none'; this.parentNode.style.background='#1a1a1a'">
+      <div class="about-img-badge">
+        <strong>2017</strong>
+        <span>Fundação</span>
+      </div>
+      <div class="about-logo-overlay">
+        <img src="" alt="" class="site-logo-img" onerror="this.style.display='none'">
+      </div>
+    </div>
+    <div data-aos>
+      <div class="section-tag">Quem Somos</div>
+      <h2 id="about-title">Uma Associação Feita pela Comunidade</h2>
+      <p id="about-text">A Associação Desportiva Bernardense foi fundada em 2017 com uma missão clara: transformar a vida de crianças através do futebol. Mais do que um esporte, acreditamos que o campo é uma escola de valores, onde cada treino ensina disciplina, trabalho em equipe e superação. Nossos atletas são os campeões do futuro.</p>
+      <div class="about-pillars">
+        <div class="pillar">
+          <div class="pillar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg></div>
+          Futebol de Base
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></div>
+          Desenvolvimento
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          Comunidade
+        </div>
+        <div class="pillar">
+          <div class="pillar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+          Alto Rendimento
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ NEWS ============ -->
+<section id="news" class="section-light">
+  <div class="section-header">
+    <div class="section-tag">Novidades</div>
+    <h2 class="section-title">Notícias & <span>Eventos</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="news-grid" id="news-grid"></div>
+</section>
+
+<!-- ============ GAMES ============ -->
+<section id="games">
+  <div class="section-header">
+    <div class="section-tag">Agenda</div>
+    <h2 class="section-title">Próximos <span>Jogos</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="games-container" id="games-list"></div>
+</section>
+
+<!-- ============ GALLERY ============ -->
+<section id="gallery" class="section-light">
+  <div class="section-header">
+    <div class="section-tag">Momentos</div>
+    <h2 class="section-title">Nossa <span>Galeria</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="gallery-grid" id="gallery-grid"></div>
+</section>
+
+<!-- ============ INSTAGRAM ============ -->
+<section id="instagram" class="section-light">
+  <div class="section-header">
+    <div class="section-tag">Redes Sociais</div>
+    <h2 class="section-title">No <span>Instagram</span></h2>
+    <div class="section-line"></div>
+    <p class="section-desc">Acompanhe nosso dia a dia nas redes sociais!</p>
+  </div>
+  <div class="instagram-grid-placeholder" id="ig-grid">
+    <div class="ig-placeholder-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div>
+    <div class="ig-placeholder-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div>
+    <div class="ig-placeholder-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div>
+    <div class="ig-placeholder-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div>
+    <div class="ig-placeholder-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div>
+    <div class="ig-placeholder-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div>
+    <div class="ig-placeholder-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div>
+    <div class="ig-placeholder-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></div>
+  </div>
+  <p class="instagram-feed-note">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" style="display:inline;vertical-align:middle;margin-right:4px"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+    Para feed automático do Instagram, adicione o token de acesso no painel Admin
+  </p>
+  <div class="instagram-btn-wrap">
+    <a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="btn-instagram instagram-link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      Seguir no Instagram
+    </a>
+  </div>
+</section>
+
+<!-- ============ ENROLLMENT CTA ============ -->
+<section id="enrollment">
+  <div class="enrollment-inner" style="grid-template-columns:1fr;text-align:center;max-width:700px">
+    <div>
+      <div class="section-tag" style="background:rgba(0,0,0,0.2);border-color:rgba(255,255,255,0.3);color:rgba(255,255,255,0.9)">Venha fazer parte</div>
+      <h2 class="enrollment-title">Inscreva<br>Seu <span style="color:var(--gold)">Atleta</span></h2>
+      <p class="enrollment-desc" style="margin-bottom:32px">Aberto para crianças e jovens que querem aprender e evoluir dentro e fora do campo. Clique abaixo para preencher o formulário de inscrição e receber seu comprovante com QR code.</p>
+      <a href="inscricao.html" style="display:inline-flex;align-items:center;gap:10px;background:var(--black);color:var(--white);font-family:var(--font-cond);font-weight:700;font-size:1.1rem;letter-spacing:3px;text-transform:uppercase;text-decoration:none;padding:18px 48px;border-radius:8px;transition:all 0.3s" onmouseover="this.style.background='var(--gold)';this.style.color='var(--black)'" onmouseout="this.style.background='var(--black)';this.style.color='var(--white)'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>
+        Fazer Inscrição Agora
+      </a>
+    </div>
+  </div>
+</section>
+
+
+<!-- ============ TRANSPARENCY ============ -->
+<div class="transparency-bar">
+  <a href="#" id="transparency-link" target="_blank">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Documento de Transparência — Acesse Aqui
+  </a>
+</div>
+
+<!-- ============ CONTACT ============ -->
+<section id="contact" class="section-light">
+  <div class="section-header">
+    <div class="section-tag">Fale Conosco</div>
+    <h2 class="section-title">Entre em <span>Contato</span></h2>
+    <div class="section-line"></div>
+  </div>
+  <div class="contact-grid">
+    <div class="contact-info">
+      <div class="contact-item">
+        <div class="contact-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div>
+          <div class="contact-label">Endereço</div>
+          <div class="contact-value" id="contact-address">Rua da Associação, 123 — São Bernardo</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.1 19.79 19.79 0 0 1 1.61 4.5 2 2 0 0 1 3.59 2.32h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.77-1.77a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div>
+          <div class="contact-label">Telefone</div>
+          <div class="contact-value" id="contact-phone">(11) 00000-0000</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div>
+          <div class="contact-label">E-mail</div>
+          <div class="contact-value" id="contact-email">contato@adbernardense.com.br</div>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+        </div>
+        <div>
+          <div class="contact-label">Instagram</div>
+          <a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="contact-value instagram-link" style="color:var(--red);text-decoration:none;font-weight:700">@a.d.bernardense</a>
+        </div>
+      </div>
+    </div>
+    <div class="contact-map">
+      <div class="contact-map-placeholder">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="36" height="36"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+        Mapa — Configure no Admin
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FOOTER ============ -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="" alt="ADB" class="site-logo-img" onerror="this.style.display='none'">
+      <div class="footer-brand-name">A.D. Bernardense</div>
+      <p id="footer-text">Formando campeões dentro e fora do campo desde 2017. Esporte, educação e comunidade.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Navegação</h4>
+      <ul>
+        <li><a href="#about">Sobre</a></li>
+        <li><a href="#news">Notícias</a></li>
+        <li><a href="#games">Jogos</a></li>
+        <li><a href="#gallery">Galeria</a></li>
+        <li><a href="#enrollment">Inscrição</a></li>
+        <li><a href="#contact">Contato</a></li>
+      </ul>
+    </div>
+    <div class="footer-col">
+      <h4>Links</h4>
+      <ul>
+        <li><a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="instagram-link">Instagram</a></li>
+        <li><a href="#" id="transparency-link-footer" onclick="document.getElementById('transparency-link').click()">Transparência</a></li>
+        <li><a href="#" onclick="openAdmin()">Área Admin</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span class="footer-copy">© 2017–2026 Associação Desportiva Bernardense. Todos os direitos reservados.</span>
+    <span class="footer-copy" style="color:rgba(255,255,255,0.15)">Desenvolvido com ❤️</span>
+  </div>
+</footer>
+
+
+<!-- ============ SCRIPTS ============ -->
+<script>
+// CURSOR BALL
+// ====================================================
+const cursorBall = document.getElementById('cursor-ball');
+const cursorTrail = document.getElementById('cursor-trail');
+let mx = 0, my = 0;
+document.addEventListener('mousemove', e => {
+  mx = e.clientX; my = e.clientY;
+  cursorBall.style.left = mx + 'px';
+  cursorBall.style.top = my + 'px';
+  cursorTrail.style.left = mx + 'px';
+  cursorTrail.style.top = my + 'px';
+});
+document.addEventListener('mousedown', () => {
+  cursorBall.style.transform = 'translate(-50%,-50%) scale(0.8)';
+});
+document.addEventListener('mouseup', () => {
+  cursorBall.style.transform = 'translate(-50%,-50%) scale(1)';
+});
+
+// ====================================================
+// NAV SCROLL
+// ====================================================
+window.addEventListener('scroll', () => {
+  document.getElementById('main-nav').classList.toggle('scrolled', window.scrollY > 50);
+});
+
+function toggleMobileMenu() {
+  document.getElementById('mobile-menu').classList.toggle('open');
+}
+
+// ====================================================
+// HERO PARTICLES
+// ====================================================
+(function spawnParticles() {
+  const container = document.getElementById('hero-particles');
+  const colors = ['red','gold','white'];
+  for (let i = 0; i < 25; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle ' + colors[Math.floor(Math.random()*3)];
+    const size = Math.random() * 5 + 2;
+    p.style.cssText = `
+      width:${size}px;height:${size}px;
+      left:${Math.random()*100}%;
+      animation-duration:${Math.random()*8+6}s;
+      animation-delay:${Math.random()*8}s;
+    `;
+    container.appendChild(p);
+  }
+})();
+
+// ====================================================
+// SCROLL AOS
+// ====================================================
+const aosObserver = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('[data-aos]').forEach(el => aosObserver.observe(el));
+
+// ====================================================
+// DEFAULT CONTENT (shown before Firebase loads)
+// ====================================================
+function renderDefaultNews() {
+  document.getElementById('news-grid').innerHTML = `
+    <div class="news-card" data-aos>
+      <div class="news-img" style="background:linear-gradient(135deg,#D32F2F,#1a1a1a)">
+        <span class="news-tag">Evento</span>
+      </div>
+      <div class="news-body">
+        <p class="news-date">Mar 2026</p>
+        <h3>Campeonato Regional Sub-12</h3>
+        <p>Nossa equipe sub-12 está pronta para mais um desafio. Confira a tabela de jogos!</p>
+      </div>
+    </div>
+    <div class="news-card" data-aos>
+      <div class="news-img" style="background:linear-gradient(135deg,#333,#D32F2F)">
+        <span class="news-tag">Notícia</span>
+      </div>
+      <div class="news-body">
+        <p class="news-date">Fev 2026</p>
+        <h3>Inscrições Abertas para 2026</h3>
+        <p>As inscrições para a temporada 2026 estão abertas! Venha fazer parte do nosso time.</p>
+      </div>
+    </div>
+    <div class="news-card" data-aos>
+      <div class="news-img" style="background:linear-gradient(135deg,#FFD600,#D32F2F)">
+        <span class="news-tag">Resultado</span>
+      </div>
+      <div class="news-body">
+        <p class="news-date">Jan 2026</p>
+        <h3>ADB Vence Torneio de Verão</h3>
+        <p>Grande vitória no torneio de verão! Parabéns aos nossos leões!</p>
+      </div>
+    </div>
+  `;
+  document.querySelectorAll('[data-aos]').forEach(el => aosObserver.observe(el));
+}
+
+function renderDefaultGames() {
+  document.getElementById('games-list').innerHTML = `
+    <div class="game-card upcoming">
+      <div class="game-date-badge">20 Mar<br>15h00</div>
+      <div class="game-teams">
+        <span class="team home">ADB</span>
+        <span class="score-or-vs">VS</span>
+        <span class="team away">Esporte Clube</span>
+      </div>
+      <div class="game-info">Campo Municipal · Sub-12</div>
+    </div>
+    <div class="game-card result">
+      <div class="game-date-badge">10 Mar<br>14h00</div>
+      <div class="game-teams">
+        <span class="team home">ADB</span>
+        <span class="score-or-vs">3 × 1</span>
+        <span class="team away">Rival FC</span>
+      </div>
+      <div class="game-info">Campo ADB · Sub-10</div>
+    </div>
+  `;
+}
+
+function renderDefaultGallery() {
+  const grid = document.getElementById('gallery-grid');
+  const gradients = [
+    'linear-gradient(135deg,#D32F2F,#1a1a1a)',
+    'linear-gradient(135deg,#1a1a1a,#D32F2F)',
+    'linear-gradient(135deg,#FFD600,#D32F2F)',
+    'linear-gradient(135deg,#D32F2F,#FFD600)',
+    'linear-gradient(135deg,#141414,#333)',
+    'linear-gradient(135deg,#B71C1C,#FFD600)',
+    'linear-gradient(135deg,#333,#B71C1C)',
+    'linear-gradient(135deg,#FFD600,#141414)',
+  ];
+  grid.innerHTML = gradients.map((g,i) => `
+    <div class="gallery-item" style="background:${g}">
+      <div class="gallery-overlay"><span>Foto ${i+1}</span></div>
+    </div>
+  `).join('');
+}
+
+// ====================================================
+// ENROLLMENT SUBMIT — salva no Firestore
+// ====================================================
+async function submitEnrollment(e) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('.btn-submit');
+  const inputs = form.querySelectorAll('input, select');
+
+  const data = {
+    atletaNome:    inputs[0].value,
+    nascimento:    inputs[1].value,
+    responsavel:   inputs[2].value,
+    telefone:      inputs[3].value,
+    categoria:     inputs[4].value,
+    status:        'novo',
+    createdAt:     new Date()
+  };
+
+  btn.textContent = 'Enviando...';
+  btn.disabled = true;
+
+  try {
+    const { addDoc, collection } = window._firebase;
+    await addDoc(collection(window._db, 'inscricoes'), data);
+    btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg> Inscrição Enviada!`;
+    btn.style.background = '#1a7a3f';
+    form.reset();
+    setTimeout(() => {
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> Enviar Inscrição`;
+      btn.style.background = '';
+      btn.disabled = false;
+    }, 4000);
+  } catch(err) {
+    btn.textContent = 'Erro — tente novamente';
+    btn.style.background = 'var(--red-dark)';
+    btn.disabled = false;
+    setTimeout(() => {
+      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg> Enviar Inscrição`;
+      btn.style.background = '';
+    }, 3000);
+  }
+}
+
+// ====================================================
+// CLOUDINARY UPLOAD
+// ====================================================
+window._uploadedUrls = {};
+
+async function uploadToCloudinary(input, previewId, urlKey) {
+  const file = input.files[0];
+  if (!file) return;
+  const cloudName = window.CLOUDINARY_CLOUD_NAME;
+  const uploadPreset = window.CLOUDINARY_UPLOAD_PRESET;
+  const previewEl = document.getElementById(previewId);
+
+  if (cloudName === 'SEU_CLOUD_NAME') {
+    window._uploadedUrls[urlKey] = URL.createObjectURL(file);
+    if (previewEl) {
+      if (file.type === 'application/pdf') {
+        previewEl.textContent = '📄 PDF selecionado: ' + file.name;
+      } else {
+        previewEl.innerHTML = `<img src="${window._uploadedUrls[urlKey]}">`;
+      }
+    }
+    alert('⚠️ Configure o Cloudinary primeiro! Por enquanto salvando localmente.');
+    return;
+  }
+
+  previewEl && (previewEl.innerHTML = '<span style="color:var(--gold);font-family:var(--font-cond);font-size:0.8rem;letter-spacing:1px">Enviando...</span>');
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', uploadPreset);
+
+  try {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    window._uploadedUrls[urlKey] = data.secure_url;
+    if (previewEl) {
+      if (file.type === 'application/pdf') {
+        previewEl.textContent = '✅ PDF enviado: ' + data.secure_url;
+      } else {
+        previewEl.innerHTML = `<img src="${data.secure_url}">`;
+      }
+    }
+    // Apply immediately to site
+    if (urlKey === 'logoUrl') document.querySelectorAll('.site-logo-img').forEach(el => el.src = data.secure_url);
+    if (urlKey === 'faviconUrl') document.getElementById('favicon-link').href = data.secure_url;
+    if (urlKey === 'heroBgUrl') { document.getElementById('hero-bg-img').src = data.secure_url; document.getElementById('hero-bg-img-overlay').src = data.secure_url; }
+    if (urlKey === 'heroCharUrl') document.getElementById('hero-char-img').src = data.secure_url;
+  } catch(err) {
+    previewEl && (previewEl.innerHTML = '<span style="color:var(--red);font-size:0.8rem">Erro no upload.</span>');
+  }
+}
+
+// ====================================================
+</script>
+</body>
+</html>

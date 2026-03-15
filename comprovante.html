@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Verificar Inscrição — ADB</title>
+<link rel="icon" type="image/x-icon" id="favicon-link" href="">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqhYAU2raJxvOr8U69spjIEg0CB_mrxVM",
+  authDomain: "adb-bernardense.firebaseapp.com",
+  projectId: "adb-bernardense",
+  storageBucket: "adb-bernardense.firebasestorage.app",
+  messagingSenderId: "272028652739",
+  appId: "1:272028652739:web:46ed1fa1a73a097e21fe76"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function fmt(v) { return v || '—'; }
+function fmtDate(ts) {
+  if (!ts) return '—';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+async function loadComprovante() {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('id');
+
+  if (!id) { showError('Link inválido. Nenhum ID de inscrição fornecido.'); return; }
+
+  try {
+    // Load config for logo/favicon
+    const cfgSnap = await getDoc(doc(db, 'config', 'site'));
+    if (cfgSnap.exists()) {
+      const cfg = cfgSnap.data();
+      if (cfg.logoUrl) document.querySelectorAll('.site-logo-img').forEach(el => el.src = cfg.logoUrl);
+      if (cfg.faviconUrl) document.getElementById('favicon-link').href = cfg.faviconUrl;
+    }
+
+    const snap = await getDoc(doc(db, 'inscricoes', id));
+    if (!snap.exists()) { showError('Inscrição não encontrada. O QR code pode estar desatualizado.'); return; }
+
+    const d = snap.data();
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('valid-state').style.display = 'block';
+
+    document.getElementById('v-protocolo').textContent = fmt(d.protocolo);
+    document.getElementById('v-atleta').textContent = fmt(d.atletaNome);
+    document.getElementById('v-nascimento').textContent = fmt(d.nascimento);
+    document.getElementById('v-categoria').textContent = fmt(d.categoria);
+    document.getElementById('v-turno').textContent = fmt(d.turno);
+    document.getElementById('v-responsavel').textContent = fmt(d.responsavel);
+    document.getElementById('v-cpf').textContent = fmt(d.cpfResponsavel);
+    document.getElementById('v-telefone').textContent = fmt(d.telefone);
+    document.getElementById('v-email').textContent = fmt(d.email);
+    document.getElementById('v-endereco').textContent = fmt(d.endereco);
+    document.getElementById('v-obs').textContent = fmt(d.observacoes);
+    document.getElementById('v-data').textContent = fmtDate(d.createdAt);
+
+    const statusMap = { novo: 'Aguardando Análise', contatado: 'Contatado', cancelado: 'Cancelado' };
+    const statusColor = { novo: '#FFD600', contatado: '#00c864', cancelado: '#D32F2F' };
+    const st = d.status || 'novo';
+    const statusEl = document.getElementById('v-status');
+    statusEl.textContent = statusMap[st] || st;
+    statusEl.style.color = statusColor[st] || '#888';
+    statusEl.style.borderColor = statusColor[st] || '#888';
+
+  } catch(err) {
+    showError('Erro ao verificar inscrição: ' + err.message);
+  }
+}
+
+function showError(msg) {
+  document.getElementById('loading-state').style.display = 'none';
+  document.getElementById('error-state').style.display = 'block';
+  document.getElementById('error-msg').textContent = msg;
+}
+
+document.addEventListener('DOMContentLoaded', loadComprovante);
+</script>
+
+<style>
+:root {
+  --red: #D32F2F; --black: #0A0A0A; --gold: #FFD600; --white: #FFFFFF;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-cond: 'Barlow Condensed', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #F3F4F6; font-family: var(--font-body); min-height: 100vh; }
+
+.page-header {
+  background: var(--black); padding: 0 5%; height: 68px;
+  display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 3px solid var(--red);
+}
+.header-logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+.header-logo img { height: 46px; width: 46px; object-fit: contain; }
+.header-logo-text { font-family: var(--font-display); font-size: 1.3rem; color: var(--white); letter-spacing: 2px; }
+.header-logo-sub { font-family: var(--font-cond); font-size: 0.6rem; font-weight: 700; letter-spacing: 4px; color: var(--gold); display: block; }
+.header-back { font-family: var(--font-cond); font-size: 0.8rem; font-weight: 700; letter-spacing: 2px; color: rgba(255,255,255,0.6); text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+.header-back:hover { color: var(--white); }
+
+.verify-wrap { max-width: 700px; margin: 40px auto; padding: 0 20px 60px; }
+
+/* Loading */
+.loading-card { background: var(--white); border-radius: 12px; padding: 60px 40px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+.spinner { width: 40px; height: 40px; border: 3px solid #eee; border-top-color: var(--red); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-card p { font-family: var(--font-cond); font-size: 0.85rem; letter-spacing: 2px; color: #888; text-transform: uppercase; }
+
+/* Error */
+.error-card { background: var(--white); border-radius: 12px; padding: 60px 40px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-top: 4px solid var(--red); }
+.error-icon { width: 56px; height: 56px; background: rgba(211,47,47,0.1); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+.error-icon svg { width: 24px; height: 24px; color: var(--red); }
+.error-card h2 { font-family: var(--font-display); font-size: 1.8rem; color: var(--red); letter-spacing: 2px; margin-bottom: 8px; }
+.error-card p { font-size: 0.95rem; color: #666; }
+
+/* Valid */
+#valid-state { display: none; }
+.valid-badge {
+  background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px;
+  padding: 16px 20px; display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+}
+.valid-badge svg { width: 22px; height: 22px; color: #16a34a; flex-shrink: 0; }
+.valid-badge-text { }
+.valid-badge-text strong { font-family: var(--font-cond); font-size: 0.9rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #16a34a; display: block; }
+.valid-badge-text span { font-size: 0.85rem; color: #555; }
+
+.comp-card { background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+.comp-card-header { background: var(--black); padding: 24px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.comp-card-header-left { display: flex; align-items: center; gap: 14px; }
+.comp-card-header-left img { width: 52px; height: 52px; object-fit: contain; }
+.comp-card-header-title h3 { font-family: var(--font-display); font-size: 1.4rem; color: var(--white); letter-spacing: 3px; }
+.comp-card-header-title p { font-family: var(--font-cond); font-size: 0.65rem; font-weight: 700; letter-spacing: 4px; color: var(--gold); }
+.proto-badge { text-align: right; }
+.proto-badge .proto-label { font-family: var(--font-cond); font-size: 0.62rem; font-weight: 700; letter-spacing: 3px; color: rgba(255,255,255,0.5); text-transform: uppercase; }
+.proto-badge .proto-num { font-family: var(--font-display); font-size: 1.2rem; color: var(--gold); letter-spacing: 2px; }
+
+.comp-card-body { padding: 28px; }
+.section-lbl { font-family: var(--font-cond); font-size: 0.68rem; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; color: var(--red); margin-bottom: 14px; margin-top: 22px; padding-bottom: 8px; border-bottom: 1.5px solid #F0F0F0; }
+.section-lbl:first-child { margin-top: 0; }
+.fields-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.field { }
+.field.full { grid-column: span 2; }
+.field .fl { font-family: var(--font-cond); font-size: 0.68rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #aaa; margin-bottom: 3px; }
+.field .fv { font-size: 0.95rem; font-weight: 600; color: var(--black); }
+.status-row { display: flex; align-items: center; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1.5px solid #f0f0f0; }
+.status-label-txt { font-family: var(--font-cond); font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #999; }
+.status-val { font-family: var(--font-cond); font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; border: 1.5px solid; padding: 3px 12px; border-radius: 20px; }
+.comp-card-footer { background: #F8F9FB; border-top: 1.5px solid #f0f0f0; padding: 16px 28px; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.footer-date { font-family: var(--font-cond); font-size: 0.72rem; letter-spacing: 1px; color: #aaa; }
+.btn-print { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-cond); font-weight: 700; font-size: 0.8rem; letter-spacing: 2px; text-transform: uppercase; padding: 8px 18px; border-radius: 6px; background: var(--red); color: var(--white); border: none; cursor: pointer; transition: background 0.2s; }
+.btn-print:hover { background: #B71C1C; }
+
+@media (max-width: 500px) {
+  .fields-grid { grid-template-columns: 1fr; }
+  .field.full { grid-column: span 1; }
+}
+@media print {
+  .page-header, .valid-badge, .btn-print { display: none !important; }
+  .comp-card { box-shadow: none; border: 1px solid #ddd; }
+  .comp-card-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <a href="index.html" class="header-logo">
+    <img src="" alt="ADB" class="site-logo-img" onerror="this.style.display='none'">
+    <div>
+      <span class="header-logo-text">ADB</span>
+      <span class="header-logo-sub">Bernardense</span>
+    </div>
+  </a>
+  <a href="index.html" class="header-back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+    Site
+  </a>
+</header>
+
+<div class="verify-wrap">
+
+  <!-- Loading -->
+  <div id="loading-state">
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <p>Verificando inscrição...</p>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div id="error-state" style="display:none">
+    <div class="error-card">
+      <div class="error-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </div>
+      <h2>INSCRIÇÃO NÃO ENCONTRADA</h2>
+      <p id="error-msg">Link inválido ou inscrição não encontrada.</p>
+    </div>
+  </div>
+
+  <!-- Valid -->
+  <div id="valid-state">
+    <div class="valid-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <div class="valid-badge-text">
+        <strong>Inscrição Autêntica e Válida</strong>
+        <span>Este documento foi verificado no banco de dados da Associação Desportiva Bernardense.</span>
+      </div>
+    </div>
+
+    <div class="comp-card">
+      <div class="comp-card-header">
+        <div class="comp-card-header-left">
+          <img src="" alt="ADB" class="site-logo-img" onerror="this.style.display='none'">
+          <div class="comp-card-header-title">
+            <h3>A.D. BERNARDENSE</h3>
+            <p>Comprovante de Inscrição</p>
+          </div>
+        </div>
+        <div class="proto-badge">
+          <div class="proto-label">Protocolo</div>
+          <div class="proto-num" id="v-protocolo">—</div>
+        </div>
+      </div>
+
+      <div class="comp-card-body">
+        <div class="section-lbl">Dados do Atleta</div>
+        <div class="fields-grid">
+          <div class="field full"><div class="fl">Nome do Atleta</div><div class="fv" id="v-atleta">—</div></div>
+          <div class="field"><div class="fl">Data de Nascimento</div><div class="fv" id="v-nascimento">—</div></div>
+          <div class="field"><div class="fl">Categoria</div><div class="fv" id="v-categoria">—</div></div>
+          <div class="field"><div class="fl">Turno</div><div class="fv" id="v-turno">—</div></div>
+        </div>
+
+        <div class="section-lbl">Dados do Responsável</div>
+        <div class="fields-grid">
+          <div class="field full"><div class="fl">Nome do Responsável</div><div class="fv" id="v-responsavel">—</div></div>
+          <div class="field"><div class="fl">CPF</div><div class="fv" id="v-cpf">—</div></div>
+          <div class="field"><div class="fl">Telefone</div><div class="fv" id="v-telefone">—</div></div>
+          <div class="field"><div class="fl">E-mail</div><div class="fv" id="v-email">—</div></div>
+          <div class="field full"><div class="fl">Endereço</div><div class="fv" id="v-endereco">—</div></div>
+        </div>
+
+        <div class="section-lbl">Observações</div>
+        <div class="fields-grid">
+          <div class="field full"><div class="fv" id="v-obs" style="font-weight:400;color:#555">—</div></div>
+        </div>
+
+        <div class="status-row">
+          <span class="status-label-txt">Status:</span>
+          <span class="status-val" id="v-status">—</span>
+        </div>
+      </div>
+
+      <div class="comp-card-footer">
+        <div class="footer-date">Inscrição enviada em: <strong id="v-data">—</strong></div>
+        <button class="btn-print" onclick="window.print()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

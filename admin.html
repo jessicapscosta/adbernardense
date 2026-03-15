@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Associação Desportiva Bernardense</title>
+<link rel="icon" type="image/x-icon" id="favicon-link" href="">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, updateDoc, orderBy, query, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBqhYAU2raJxvOr8U69spjIEg0CB_mrxVM",
+  authDomain: "adb-bernardense.firebaseapp.com",
+  projectId: "adb-bernardense",
+  storageBucket: "adb-bernardense.firebasestorage.app",
+  messagingSenderId: "272028652739",
+  appId: "1:272028652739:web:46ed1fa1a73a097e21fe76"
+};
+
+window.CLOUDINARY_CLOUD_NAME = "dgqxadsmt";
+window.CLOUDINARY_UPLOAD_PRESET = "adb_uploads";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+window._db = db;
+window._auth = auth;
+window._firebase = { collection, getDocs, doc, getDoc, setDoc, addDoc, deleteDoc, updateDoc, orderBy, query, limit, signInWithEmailAndPassword, signOut, onAuthStateChanged };
+
+// Check auth on load
+const { onAuthStateChanged: oAC } = window._firebase;
+oAC(auth, user => {
+  if (user) {
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'flex';
+    loadAdminData();
+  } else {
+    document.getElementById('admin-login').style.display = 'flex';
+    document.getElementById('admin-panel').style.display = 'none';
+  }
+});
+
+async function loadAdminData() {
+  await loadAdminConfig();
+  await loadAdminNews();
+  await loadAdminGames();
+  await loadEnrollments();
+}
+window.loadAdminData = loadAdminData;
+</script>
+
+<style>
+:root {
+  --red: #D32F2F; --red-dark: #B71C1C; --red-light: #EF5350;
+  --black: #0A0A0A; --black2: #141414; --black3: #1E1E1E;
+  --gold: #FFD600; --gold2: #FFA000; --white: #FFFFFF; --gray: #888; --gray2: #555;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-cond: 'Barlow Condensed', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--black); color: var(--white); font-family: var(--font-body); }
+::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: var(--black2); } ::-webkit-scrollbar-thumb { background: var(--red); border-radius: 3px; }
+
+/* ---- LOGIN ---- */
+.admin-login-screen {
+  position: fixed; inset: 0; background: var(--black); z-index: 99999;
+  display: flex; align-items: center; justify-content: center;
+}
+.admin-login-card {
+  background: var(--black3); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 44px 50px; width: 380px; text-align: center;
+}
+.admin-login-card img { width: 80px; height: 80px; object-fit: contain; margin-bottom: 20px; }
+.admin-login-card h2 { font-family: var(--font-display); font-size: 1.8rem; letter-spacing: 4px; margin-bottom: 4px; }
+.admin-login-card .sub { font-size: 0.75rem; font-family: var(--font-cond); letter-spacing: 3px; color: var(--gray); margin-bottom: 28px; text-transform: uppercase; }
+.login-input {
+  width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px; padding: 12px 14px; color: var(--white); font-family: var(--font-body);
+  font-size: 0.95rem; outline: none; margin-bottom: 12px; transition: border-color 0.2s;
+}
+.login-input:focus { border-color: var(--red); }
+.login-btn {
+  width: 100%; background: var(--red); color: var(--white); border: none;
+  font-family: var(--font-cond); font-weight: 700; font-size: 1rem; letter-spacing: 3px;
+  padding: 14px; border-radius: 6px; cursor: pointer; transition: background 0.2s; margin-top: 4px;
+}
+.login-btn:hover { background: var(--red-dark); }
+.login-err { margin-top: 12px; color: var(--red); font-family: var(--font-cond); font-size: 0.8rem; letter-spacing: 1px; display: none; }
+
+/* ---- PANEL LAYOUT ---- */
+#admin-panel {
+  display: none; flex-direction: column; min-height: 100vh;
+}
+.admin-topbar {
+  position: sticky; top: 0; background: var(--black2); border-bottom: 2px solid var(--red);
+  padding: 0 28px; height: 60px; display: flex; align-items: center;
+  justify-content: space-between; z-index: 100; flex-shrink: 0;
+}
+.admin-topbar-left { display: flex; align-items: center; gap: 14px; }
+.admin-topbar-logo { width: 38px; height: 38px; object-fit: contain; }
+.admin-topbar h1 { font-family: var(--font-display); font-size: 1.3rem; letter-spacing: 3px; }
+.admin-topbar h1 span { color: var(--red); }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.btn-topbar {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-cond); font-size: 0.75rem; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; padding: 7px 16px; border-radius: 4px; cursor: pointer;
+  transition: all 0.2s; text-decoration: none; border: none;
+}
+.btn-topbar.red { background: var(--red); color: var(--white); }
+.btn-topbar.red:hover { background: var(--red-dark); }
+.btn-topbar.outline { background: transparent; color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.15); }
+.btn-topbar.outline:hover { color: var(--white); border-color: rgba(255,255,255,0.4); }
+
+.admin-body { display: flex; flex: 1; }
+
+/* ---- SIDEBAR ---- */
+.admin-sidebar {
+  width: 230px; background: var(--black2); border-right: 1px solid rgba(255,255,255,0.06);
+  padding: 20px 0; flex-shrink: 0; position: sticky; top: 60px; height: calc(100vh - 60px); overflow-y: auto;
+}
+.sidebar-group-label {
+  font-family: var(--font-cond); font-size: 0.62rem; font-weight: 700; letter-spacing: 4px;
+  text-transform: uppercase; color: rgba(255,255,255,0.25); padding: 14px 20px 6px;
+}
+.admin-nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 11px 20px;
+  font-family: var(--font-cond); font-size: 0.82rem; font-weight: 700; letter-spacing: 1.5px;
+  text-transform: uppercase; color: rgba(255,255,255,0.5); cursor: pointer;
+  transition: all 0.2s; border-left: 3px solid transparent;
+}
+.admin-nav-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+.admin-nav-item:hover { color: var(--white); background: rgba(255,255,255,0.04); }
+.admin-nav-item.active { color: var(--white); background: rgba(211,47,47,0.1); border-left-color: var(--red); }
+
+/* ---- MAIN ---- */
+.admin-main { flex: 1; padding: 32px; overflow-y: auto; }
+.admin-section { display: none; }
+.admin-section.active { display: block; }
+.admin-section-title {
+  font-family: var(--font-display); font-size: 2rem; letter-spacing: 2px;
+  margin-bottom: 24px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ---- CARDS ---- */
+.admin-card {
+  background: var(--black3); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px; padding: 24px; margin-bottom: 20px;
+}
+.admin-card h3 {
+  font-family: var(--font-cond); font-size: 0.72rem; font-weight: 700; letter-spacing: 4px;
+  text-transform: uppercase; color: var(--gold2); margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+}
+.admin-card h3 svg { width: 14px; height: 14px; }
+.admin-field { margin-bottom: 16px; }
+.admin-field label {
+  display: block; font-family: var(--font-cond); font-size: 0.72rem; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 6px;
+}
+.admin-field input, .admin-field textarea, .admin-field select {
+  width: 100%; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+  border-radius: 5px; padding: 10px 12px; color: var(--white); font-family: var(--font-body);
+  font-size: 0.9rem; outline: none; transition: border-color 0.2s;
+}
+.admin-field input:focus, .admin-field textarea:focus, .admin-field select:focus { border-color: var(--red); }
+.admin-field textarea { resize: vertical; min-height: 80px; }
+.admin-field input[type="file"] { padding: 8px; }
+.admin-field select option { background: var(--black2); }
+.admin-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ---- BUTTONS ---- */
+.btn-admin {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--red); color: var(--white); border: none;
+  font-family: var(--font-cond); font-size: 0.82rem; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; padding: 10px 22px; border-radius: 5px; cursor: pointer; transition: all 0.2s;
+}
+.btn-admin svg { width: 14px; height: 14px; }
+.btn-admin:hover { background: var(--red-dark); transform: translateY(-1px); }
+.btn-admin.gold { background: var(--gold); color: var(--black); }
+.btn-admin.gold:hover { background: var(--gold2); }
+.btn-admin.outline { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: rgba(255,255,255,0.65); }
+.btn-admin.outline:hover { border-color: var(--white); color: var(--white); background: rgba(255,255,255,0.05); }
+
+/* ---- MSGS ---- */
+.admin-msg { padding: 10px 14px; border-radius: 5px; font-family: var(--font-cond); font-size: 0.82rem; font-weight: 700; letter-spacing: 1px; margin-top: 12px; display: none; }
+.admin-msg.success { background: rgba(0,200,100,0.1); color: #00c864; border: 1px solid rgba(0,200,100,0.25); }
+.admin-msg.error { background: rgba(211,47,47,0.1); color: var(--red); border: 1px solid rgba(211,47,47,0.25); }
+
+/* ---- LISTS ---- */
+.admin-list { display: flex; flex-direction: column; gap: 10px; }
+.admin-list-item {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 6px; padding: 14px 18px; display: flex; align-items: center;
+  justify-content: space-between; gap: 14px; flex-wrap: wrap;
+}
+.ali-title { font-family: var(--font-cond); font-weight: 700; font-size: 1rem; color: var(--white); }
+.ali-sub { font-size: 0.8rem; color: var(--gray); font-family: var(--font-cond); letter-spacing: 1px; margin-top: 3px; }
+.btn-del {
+  background: transparent; border: 1px solid rgba(211,47,47,0.35); color: var(--red);
+  font-family: var(--font-cond); font-size: 0.72rem; font-weight: 700; letter-spacing: 1px;
+  padding: 5px 12px; border-radius: 4px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+}
+.btn-del:hover { background: var(--red); color: var(--white); }
+.btn-ok {
+  background: transparent; border: 1px solid rgba(0,200,100,0.35); color: #00c864;
+  font-family: var(--font-cond); font-size: 0.72rem; font-weight: 700; letter-spacing: 1px;
+  padding: 5px 12px; border-radius: 4px; cursor: pointer; transition: all 0.2s; flex-shrink: 0;
+}
+.btn-ok:hover { background: #00c864; color: var(--black); }
+
+/* ---- UPLOAD PREVIEW ---- */
+.admin-preview { margin-top: 10px; max-width: 180px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
+.admin-preview img { width: 100%; display: block; }
+
+/* ---- SEO HINT ---- */
+.seo-hint { background: rgba(255,214,0,0.05); border: 1px solid rgba(255,214,0,0.15); padding: 14px; border-radius: 6px; font-family: var(--font-cond); font-size: 0.78rem; letter-spacing: 1px; color: rgba(255,255,255,0.55); line-height: 1.7; }
+.seo-hint strong { color: var(--gold); }
+
+/* ---- ENROLLMENT TABLE ---- */
+.enroll-filters { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); font-family: var(--font-cond); font-size: 0.75rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 7px 16px; border-radius: 20px; cursor: pointer; transition: all 0.2s; }
+.filter-btn:hover, .filter-btn.active { background: var(--red); border-color: var(--red); color: var(--white); }
+.enroll-count { font-family: var(--font-cond); font-size: 0.78rem; letter-spacing: 2px; color: var(--gray); margin-bottom: 14px; }
+.enroll-item {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 8px; padding: 18px 20px; margin-bottom: 10px;
+  display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: start;
+}
+.enroll-item:hover { border-color: rgba(255,255,255,0.12); }
+.enroll-main-info { }
+.enroll-atleta { font-family: var(--font-cond); font-size: 1.05rem; font-weight: 900; color: var(--white); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+.enroll-badge { font-family: var(--font-cond); font-size: 0.65rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; padding: 2px 9px; border-radius: 12px; border: 1px solid; }
+.enroll-details { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 16px; margin-top: 8px; }
+.enroll-detail { }
+.enroll-detail .dl { font-family: var(--font-cond); font-size: 0.62rem; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #555; margin-bottom: 2px; }
+.enroll-detail .dv { font-size: 0.88rem; color: rgba(255,255,255,0.8); }
+.enroll-actions { display: flex; flex-direction: column; gap: 7px; align-items: flex-end; }
+.btn-print-enroll {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,214,0,0.1); border: 1px solid rgba(255,214,0,0.3); color: var(--gold);
+  font-family: var(--font-cond); font-size: 0.72rem; font-weight: 700; letter-spacing: 1px;
+  padding: 5px 12px; border-radius: 4px; cursor: pointer; transition: all 0.2s; text-decoration: none;
+}
+.btn-print-enroll:hover { background: var(--gold); color: var(--black); }
+.btn-print-enroll svg { width: 12px; height: 12px; }
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 800px) {
+  .admin-sidebar { display: none; }
+  .admin-grid2 { grid-template-columns: 1fr; }
+  .enroll-details { grid-template-columns: 1fr 1fr; }
+  .enroll-item { grid-template-columns: 1fr; }
+  .enroll-actions { flex-direction: row; flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="admin-login-screen" id="admin-login">
+  <div class="admin-login-card">
+    <img src="" alt="ADB" class="site-logo-img" onerror="this.style.display='none'">
+    <h2>ADMIN</h2>
+    <p class="sub">Área Restrita · ADB</p>
+    <input type="email" id="admin-email" class="login-input" placeholder="E-mail">
+    <input type="password" id="admin-password" class="login-input" placeholder="Senha">
+    <button class="login-btn" onclick="doAdminLogin()">Entrar</button>
+    <div class="login-err" id="admin-login-error">E-mail ou senha incorretos.</div>
+  </div>
+</div>
+
+<!-- ============ PANEL ============ -->
+<div id="admin-panel">
+  <div class="admin-topbar">
+    <div class="admin-topbar-left">
+      <img src="" alt="ADB" class="admin-topbar-logo site-logo-img" onerror="this.style.display='none'">
+      <h1>ADMIN <span>ADB</span></h1>
+    </div>
+    <div class="topbar-actions">
+      <a href="index.html" target="_blank" class="btn-topbar outline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Ver Site
+      </a>
+      <button class="btn-topbar red" onclick="doAdminLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sair
+      </button>
+    </div>
+  </div>
+
+  <div class="admin-body">
+    <!-- SIDEBAR -->
+    <div class="admin-sidebar">
+      <div class="sidebar-group-label">Configuração</div>
+      <div class="admin-nav-item active" onclick="showAdminSection('general')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>Geral
+      </div>
+      <div class="admin-nav-item" onclick="showAdminSection('hero')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m3 9 4-4 4 4 4-6 4 6"/></svg>Hero
+      </div>
+      <div class="admin-nav-item" onclick="showAdminSection('seo')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>SEO
+      </div>
+      <div class="admin-nav-item" onclick="showAdminSection('contact')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>Contato
+      </div>
+      <div class="admin-nav-item" onclick="showAdminSection('transparency')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Transparência
+      </div>
+      <div class="sidebar-group-label">Conteúdo</div>
+      <div class="admin-nav-item" onclick="showAdminSection('news')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8"/></svg>Notícias
+      </div>
+      <div class="admin-nav-item" onclick="showAdminSection('games')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/><path d="M2 12h20"/></svg>Jogos
+      </div>
+      <div class="admin-nav-item" onclick="showAdminSection('gallery')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Galeria
+      </div>
+      <div class="sidebar-group-label">Atletas</div>
+      <div class="admin-nav-item" onclick="showAdminSection('enrollments')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>Inscrições
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="admin-main">
+
+      <!-- GERAL -->
+      <div class="admin-section active" id="section-general">
+        <div class="admin-section-title">Configurações Gerais</div>
+        <div class="admin-card">
+          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>Logo & Identidade</h3>
+          <div class="admin-grid2">
+            <div class="admin-field">
+              <label>Logo do site</label>
+              <input type="file" accept="image/*" onchange="uploadToCloudinary(this,'prev-logo','logoUrl')">
+              <div class="admin-preview" id="prev-logo"></div>
+            </div>
+            <div class="admin-field">
+              <label>Favicon (ícone da aba)</label>
+              <input type="file" accept="image/*,image/x-icon" onchange="uploadToCloudinary(this,'prev-favicon','faviconUrl')">
+              <div class="admin-preview" id="prev-favicon"></div>
+            </div>
+          </div>
+          <div class="admin-field"><label>Nome do site</label><input type="text" id="cfg-siteName" placeholder="Associação Desportiva Bernardense"></div>
+          <div class="admin-field"><label>Link do Instagram</label><input type="url" id="cfg-instagramUrl" placeholder="https://www.instagram.com/a.d.bernardense"></div>
+          <div class="admin-field"><label>Texto — seção Sobre</label><textarea id="cfg-aboutText" rows="4"></textarea></div>
+          <div class="admin-field"><label>Título — seção Sobre</label><input type="text" id="cfg-aboutTitle"></div>
+          <div class="admin-field"><label>Texto do rodapé</label><textarea id="cfg-footerText" rows="2"></textarea></div>
+          <button class="btn-admin" onclick="saveGeneralConfig()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Salvar
+          </button>
+          <div class="admin-msg" id="msg-general"></div>
+        </div>
+      </div>
+
+      <!-- HERO -->
+      <div class="admin-section" id="section-hero">
+        <div class="admin-section-title">Seção Hero</div>
+        <div class="admin-card">
+          <h3>Imagens</h3>
+          <div class="admin-grid2">
+            <div class="admin-field">
+              <label>Imagem de background</label>
+              <input type="file" accept="image/*" onchange="uploadToCloudinary(this,'prev-herobg','heroBgUrl')">
+              <div class="admin-preview" id="prev-herobg"></div>
+            </div>
+            <div class="admin-field">
+              <label>Mascote / personagem (PNG)</label>
+              <input type="file" accept="image/*" onchange="uploadToCloudinary(this,'prev-herochar','heroCharUrl')">
+              <div class="admin-preview" id="prev-herochar"></div>
+            </div>
+          </div>
+        </div>
+        <div class="admin-card">
+          <h3>Textos</h3>
+          <div class="admin-field"><label>Título (use &lt;span class="red"&gt; e &lt;span class="gold"&gt;)</label><textarea id="cfg-heroTitle" rows="3"></textarea></div>
+          <div class="admin-field"><label>Subtítulo</label><textarea id="cfg-heroSubtitle" rows="2"></textarea></div>
+          <div class="admin-grid2">
+            <div class="admin-field"><label>Texto do botão</label><input type="text" id="cfg-heroBtnText"></div>
+            <div class="admin-field"><label>Link do botão</label><input type="text" id="cfg-heroBtnLink"></div>
+          </div>
+          <button class="btn-admin" onclick="saveHeroConfig()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            Salvar Hero
+          </button>
+          <div class="admin-msg" id="msg-hero"></div>
+        </div>
+      </div>
+
+      <!-- SEO -->
+      <div class="admin-section" id="section-seo">
+        <div class="admin-section-title">SEO & Metadados</div>
+        <div class="admin-card">
+          <h3>Otimização para Buscadores</h3>
+          <div class="admin-grid2">
+            <div class="admin-field"><label>Título da página</label><input type="text" id="cfg-seoTitle"></div>
+            <div class="admin-field"><label>Palavras-chave</label><input type="text" id="cfg-seoKeywords" placeholder="futebol, associação, bernardense"></div>
+          </div>
+          <div class="admin-field"><label>Descrição (meta description — máx 160 chars)</label><textarea id="cfg-seoDesc" rows="3"></textarea></div>
+          <div class="seo-hint">💡 <strong>Dica:</strong> Use o nome da associação nos primeiros 60 caracteres do título. A descrição deve ter entre 120–160 caracteres e incluir palavras como "futebol", "crianças" e o nome da cidade.</div>
+          <button class="btn-admin" style="margin-top:14px" onclick="saveSeoConfig()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            Salvar SEO
+          </button>
+          <div class="admin-msg" id="msg-seo"></div>
+        </div>
+      </div>
+
+      <!-- CONTATO -->
+      <div class="admin-section" id="section-contact">
+        <div class="admin-section-title">Contato</div>
+        <div class="admin-card">
+          <h3>Informações</h3>
+          <div class="admin-grid2">
+            <div class="admin-field"><label>Endereço</label><input type="text" id="cfg-contactAddress"></div>
+            <div class="admin-field"><label>Telefone</label><input type="text" id="cfg-contactPhone"></div>
+            <div class="admin-field"><label>E-mail</label><input type="email" id="cfg-contactEmail"></div>
+            <div class="admin-field"><label>Google Maps Embed URL</label><input type="url" id="cfg-mapUrl" placeholder="https://www.google.com/maps/embed?..."></div>
+          </div>
+          <button class="btn-admin" onclick="saveContactConfig()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            Salvar Contato
+          </button>
+          <div class="admin-msg" id="msg-contact"></div>
+        </div>
+      </div>
+
+      <!-- TRANSPARÊNCIA -->
+      <div class="admin-section" id="section-transparency">
+        <div class="admin-section-title">Transparência</div>
+        <div class="admin-card">
+          <h3>Documento PDF</h3>
+          <div class="admin-field">
+            <label>Upload do PDF</label>
+            <input type="file" accept="application/pdf" onchange="uploadToCloudinary(this,'prev-pdf','transparencyPdfUrl')">
+            <div id="prev-pdf" style="margin-top:8px;font-family:var(--font-cond);font-size:0.82rem;color:var(--gold);letter-spacing:1px"></div>
+          </div>
+          <div class="admin-field"><label>Ou cole o link direto</label><input type="url" id="cfg-transparencyPdfUrl"></div>
+          <button class="btn-admin" onclick="saveTransparency()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+            Salvar
+          </button>
+          <div class="admin-msg" id="msg-transparency"></div>
+        </div>
+      </div>
+
+      <!-- NOTÍCIAS -->
+      <div class="admin-section" id="section-news">
+        <div class="admin-section-title">Notícias & Eventos</div>
+        <div class="admin-card">
+          <h3>Nova Notícia</h3>
+          <div class="admin-grid2">
+            <div class="admin-field"><label>Título</label><input type="text" id="news-title"></div>
+            <div class="admin-field"><label>Categoria</label><input type="text" id="news-category" placeholder="Notícia / Evento / Resultado"></div>
+            <div class="admin-field"><label>Data</label><input type="text" id="news-date" placeholder="15 Mar 2026"></div>
+          </div>
+          <div class="admin-field"><label>Resumo</label><textarea id="news-excerpt" rows="3"></textarea></div>
+          <div class="admin-field">
+            <label>Imagem</label>
+            <input type="file" accept="image/*" onchange="uploadToCloudinary(this,'prev-news','_newsImageUrl')">
+            <div class="admin-preview" id="prev-news"></div>
+          </div>
+          <button class="btn-admin" onclick="saveNews()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Publicar
+          </button>
+          <div class="admin-msg" id="msg-news"></div>
+        </div>
+        <div class="admin-card">
+          <h3>Publicadas</h3>
+          <div class="admin-list" id="news-admin-list"><p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem">Carregando...</p></div>
+        </div>
+      </div>
+
+      <!-- JOGOS -->
+      <div class="admin-section" id="section-games">
+        <div class="admin-section-title">Jogos & Resultados</div>
+        <div class="admin-card">
+          <h3>Adicionar Jogo</h3>
+          <div class="admin-grid2">
+            <div class="admin-field"><label>Mandante</label><input type="text" id="game-home" placeholder="ADB"></div>
+            <div class="admin-field"><label>Visitante</label><input type="text" id="game-away"></div>
+            <div class="admin-field"><label>Data / Hora</label><input type="text" id="game-date" placeholder="20 Mar · 15h"></div>
+            <div class="admin-field"><label>Local</label><input type="text" id="game-local"></div>
+            <div class="admin-field"><label>Categoria</label><input type="text" id="game-category" placeholder="Sub-12"></div>
+            <div class="admin-field"><label>Status</label>
+              <select id="game-status"><option value="upcoming">Próximo jogo</option><option value="result">Resultado</option></select>
+            </div>
+            <div class="admin-field"><label>Placar mandante</label><input type="number" id="game-home-score" placeholder="0"></div>
+            <div class="admin-field"><label>Placar visitante</label><input type="number" id="game-away-score" placeholder="0"></div>
+          </div>
+          <button class="btn-admin" onclick="saveGame()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar
+          </button>
+          <div class="admin-msg" id="msg-games"></div>
+        </div>
+        <div class="admin-card">
+          <h3>Cadastrados</h3>
+          <div class="admin-list" id="games-admin-list"><p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem">Carregando...</p></div>
+        </div>
+      </div>
+
+      <!-- GALERIA -->
+      <div class="admin-section" id="section-gallery">
+        <div class="admin-section-title">Galeria de Fotos</div>
+        <div class="admin-card">
+          <h3>Adicionar Foto</h3>
+          <div class="admin-field">
+            <label>Foto</label>
+            <input type="file" accept="image/*" onchange="uploadToCloudinary(this,'prev-gallery','_galleryImageUrl')">
+            <div class="admin-preview" id="prev-gallery"></div>
+          </div>
+          <div class="admin-field"><label>Legenda</label><input type="text" id="gallery-title"></div>
+          <button class="btn-admin" onclick="saveGalleryItem()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar
+          </button>
+          <div class="admin-msg" id="msg-gallery"></div>
+        </div>
+      </div>
+
+      <!-- INSCRIÇÕES -->
+      <div class="admin-section" id="section-enrollments">
+        <div class="admin-section-title">Inscrições Recebidas</div>
+        <div class="admin-card">
+          <h3>Lista de Atletas Inscritos</h3>
+          <div class="enroll-filters">
+            <button class="filter-btn active" onclick="filterEnrollments('all', this)">Todos</button>
+            <button class="filter-btn" onclick="filterEnrollments('novo', this)">Novos</button>
+            <button class="filter-btn" onclick="filterEnrollments('contatado', this)">Contatados</button>
+            <button class="filter-btn" onclick="filterEnrollments('cancelado', this)">Cancelados</button>
+          </div>
+          <div class="enroll-count" id="enroll-count"></div>
+          <div id="enrollments-list"><p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem">Carregando...</p></div>
+        </div>
+      </div>
+
+    </div><!-- /admin-main -->
+  </div><!-- /admin-body -->
+</div><!-- /admin-panel -->
+
+<script>
+// ====================================================
+// UTILS
+// ====================================================
+function v(id) { return document.getElementById(id)?.value || ''; }
+
+function showMsg(id, type, text) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = text; el.className = 'admin-msg ' + type; el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+function showAdminSection(id) {
+  document.querySelectorAll('.admin-section').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.admin-nav-item').forEach(el => el.classList.remove('active'));
+  const section = document.getElementById('section-' + id);
+  if (section) section.classList.add('active');
+  event.currentTarget.classList.add('active');
+}
+
+// ====================================================
+// AUTH
+// ====================================================
+async function doAdminLogin() {
+  const email = document.getElementById('admin-email').value;
+  const pass = document.getElementById('admin-password').value;
+  const errEl = document.getElementById('admin-login-error');
+  errEl.style.display = 'none';
+  try {
+    const { signInWithEmailAndPassword } = window._firebase;
+    await signInWithEmailAndPassword(window._auth, email, pass);
+  } catch(e) { errEl.style.display = 'block'; }
+}
+document.getElementById('admin-password').addEventListener('keydown', e => { if(e.key==='Enter') doAdminLogin(); });
+
+async function doAdminLogout() {
+  const { signOut } = window._firebase;
+  await signOut(window._auth);
+}
+
+// ====================================================
+// CLOUDINARY
+// ====================================================
+window._uploadedUrls = {};
+async function uploadToCloudinary(input, previewId, urlKey) {
+  const file = input.files[0];
+  if (!file) return;
+  const previewEl = document.getElementById(previewId);
+  previewEl && (previewEl.innerHTML = '<span style="font-family:var(--font-cond);font-size:0.78rem;letter-spacing:1px;color:var(--gold)">Enviando...</span>');
+  const fd = new FormData();
+  fd.append('file', file);
+  fd.append('upload_preset', window.CLOUDINARY_UPLOAD_PRESET);
+  try {
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${window.CLOUDINARY_CLOUD_NAME}/upload`, { method:'POST', body:fd });
+    const data = await res.json();
+    window._uploadedUrls[urlKey] = data.secure_url;
+    if (previewEl) {
+      if (file.type === 'application/pdf') {
+        previewEl.textContent = '✅ ' + file.name;
+      } else {
+        previewEl.innerHTML = `<img src="${data.secure_url}">`;
+      }
+    }
+  } catch(e) {
+    previewEl && (previewEl.innerHTML = '<span style="color:var(--red);font-size:0.78rem">Erro no upload.</span>');
+  }
+}
+
+// ====================================================
+// CONFIG
+// ====================================================
+let _cfg = {};
+async function loadAdminConfig() {
+  try {
+    const { doc, getDoc } = window._firebase;
+    const snap = await getDoc(doc(window._db, 'config', 'site'));
+    if (snap.exists()) {
+      _cfg = snap.data();
+      const fields = ['siteName','instagramUrl','footerText','aboutText','aboutTitle',
+        'heroTitle','heroSubtitle','heroBtnText','heroBtnLink',
+        'transparencyPdfUrl','contactAddress','contactPhone','contactEmail','mapUrl'];
+      fields.forEach(k => { const el = document.getElementById('cfg-'+k); if(el && _cfg[k]) el.value = _cfg[k]; });
+      if (_cfg.siteName) document.getElementById('cfg-seoTitle').value = _cfg.siteName;
+      if (_cfg.metaDesc) document.getElementById('cfg-seoDesc').value = _cfg.metaDesc;
+      if (_cfg.metaKeywords) document.getElementById('cfg-seoKeywords').value = _cfg.metaKeywords;
+      if (_cfg.logoUrl) document.querySelectorAll('.site-logo-img').forEach(el => el.src = _cfg.logoUrl);
+      if (_cfg.faviconUrl) document.getElementById('favicon-link').href = _cfg.faviconUrl;
+    }
+  } catch(e) {}
+}
+
+async function saveConfig(extra, msgId) {
+  const { doc, setDoc } = window._firebase;
+  try {
+    await setDoc(doc(window._db,'config','site'), { ..._cfg, ...extra }, { merge:true });
+    _cfg = { ..._cfg, ...extra };
+    showMsg(msgId, 'success', '✅ Salvo com sucesso!');
+  } catch(e) { showMsg(msgId, 'error', '❌ Erro: ' + e.message); }
+}
+
+function saveGeneralConfig() {
+  const d = { siteName:v('cfg-siteName'), instagramUrl:v('cfg-instagramUrl'), footerText:v('cfg-footerText'), aboutText:v('cfg-aboutText'), aboutTitle:v('cfg-aboutTitle') };
+  if (window._uploadedUrls.logoUrl) d.logoUrl = window._uploadedUrls.logoUrl;
+  if (window._uploadedUrls.faviconUrl) d.faviconUrl = window._uploadedUrls.faviconUrl;
+  saveConfig(d, 'msg-general');
+}
+function saveHeroConfig() {
+  const d = { heroTitle:v('cfg-heroTitle'), heroSubtitle:v('cfg-heroSubtitle'), heroBtnText:v('cfg-heroBtnText'), heroBtnLink:v('cfg-heroBtnLink') };
+  if (window._uploadedUrls.heroBgUrl) d.heroBgUrl = window._uploadedUrls.heroBgUrl;
+  if (window._uploadedUrls.heroCharUrl) d.heroCharUrl = window._uploadedUrls.heroCharUrl;
+  saveConfig(d, 'msg-hero');
+}
+function saveSeoConfig() {
+  saveConfig({ siteName:v('cfg-seoTitle'), metaDesc:v('cfg-seoDesc'), metaKeywords:v('cfg-seoKeywords') }, 'msg-seo');
+}
+function saveContactConfig() {
+  saveConfig({ contactAddress:v('cfg-contactAddress'), contactPhone:v('cfg-contactPhone'), contactEmail:v('cfg-contactEmail'), mapUrl:v('cfg-mapUrl') }, 'msg-contact');
+}
+function saveTransparency() {
+  const url = window._uploadedUrls.transparencyPdfUrl || v('cfg-transparencyPdfUrl');
+  if (!url) { showMsg('msg-transparency','error','❌ Adicione um PDF ou um link.'); return; }
+  saveConfig({ transparencyPdfUrl:url }, 'msg-transparency');
+}
+
+// ====================================================
+// NEWS
+// ====================================================
+async function saveNews() {
+  const { addDoc, collection } = window._firebase;
+  try {
+    await addDoc(collection(window._db,'news'), { title:v('news-title'), excerpt:v('news-excerpt'), date:v('news-date'), category:v('news-category'), imageUrl:window._uploadedUrls._newsImageUrl||'', createdAt:new Date() });
+    showMsg('msg-news','success','✅ Publicado!');
+    ['news-title','news-excerpt','news-date','news-category'].forEach(id => document.getElementById(id).value='');
+    window._uploadedUrls._newsImageUrl=''; document.getElementById('prev-news').innerHTML='';
+    loadAdminNews();
+  } catch(e) { showMsg('msg-news','error','❌ '+e.message); }
+}
+async function loadAdminNews() {
+  const { collection, getDocs, orderBy, query, doc, deleteDoc } = window._firebase;
+  try {
+    const snap = await getDocs(query(collection(window._db,'news'), orderBy('createdAt','desc')));
+    const c = document.getElementById('news-admin-list');
+    if (snap.empty) { c.innerHTML='<p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem">Nenhuma notícia.</p>'; return; }
+    c.innerHTML='';
+    snap.forEach(d => { const n=d.data(); c.innerHTML+=`<div class="admin-list-item"><div><div class="ali-title">${n.title}</div><div class="ali-sub">${n.date} · ${n.category}</div></div><button class="btn-del" onclick="deleteDoc_('news','${d.id}','news-admin-list',loadAdminNews)">Excluir</button></div>`; });
+  } catch(e) {}
+}
+
+// ====================================================
+// GAMES
+// ====================================================
+async function saveGame() {
+  const { addDoc, collection } = window._firebase;
+  try {
+    await addDoc(collection(window._db,'games'), { home:v('game-home'), away:v('game-away'), date:v('game-date'), local:v('game-local'), category:v('game-category'), status:v('game-status'), homeScore:v('game-home-score'), awayScore:v('game-away-score') });
+    showMsg('msg-games','success','✅ Jogo adicionado!');
+    loadAdminGames();
+  } catch(e) { showMsg('msg-games','error','❌ '+e.message); }
+}
+async function loadAdminGames() {
+  const { collection, getDocs } = window._firebase;
+  try {
+    const snap = await getDocs(collection(window._db,'games'));
+    const c = document.getElementById('games-admin-list');
+    if (snap.empty) { c.innerHTML='<p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem">Nenhum jogo.</p>'; return; }
+    c.innerHTML='';
+    snap.forEach(d => { const g=d.data(); c.innerHTML+=`<div class="admin-list-item"><div><div class="ali-title">${g.home} vs ${g.away}</div><div class="ali-sub">${g.date} · ${g.category} · ${g.status==='result'?g.homeScore+' × '+g.awayScore:'Próximo'}</div></div><button class="btn-del" onclick="deleteDoc_('games','${d.id}','games-admin-list',loadAdminGames)">Excluir</button></div>`; });
+  } catch(e) {}
+}
+
+// ====================================================
+// GALLERY
+// ====================================================
+async function saveGalleryItem() {
+  const url = window._uploadedUrls._galleryImageUrl;
+  if (!url) { showMsg('msg-gallery','error','❌ Faça upload da foto primeiro.'); return; }
+  const { addDoc, collection } = window._firebase;
+  try {
+    await addDoc(collection(window._db,'gallery'), { url, title:v('gallery-title'), createdAt:new Date() });
+    showMsg('msg-gallery','success','✅ Foto adicionada!');
+    document.getElementById('gallery-title').value=''; window._uploadedUrls._galleryImageUrl=''; document.getElementById('prev-gallery').innerHTML='';
+  } catch(e) { showMsg('msg-gallery','error','❌ '+e.message); }
+}
+
+// ====================================================
+// ENROLLMENTS
+// ====================================================
+let _enrollments = [];
+async function loadEnrollments() {
+  const { collection, getDocs, orderBy, query } = window._firebase;
+  try {
+    const snap = await getDocs(query(collection(window._db,'inscricoes'), orderBy('createdAt','desc')));
+    _enrollments = [];
+    snap.forEach(d => _enrollments.push({ id:d.id, ...d.data() }));
+    renderEnrollments('all');
+  } catch(e) {}
+}
+
+function filterEnrollments(status, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderEnrollments(status);
+}
+
+function renderEnrollments(filter) {
+  const list = filter === 'all' ? _enrollments : _enrollments.filter(e => e.status === filter);
+  const container = document.getElementById('enrollments-list');
+  document.getElementById('enroll-count').textContent = `${list.length} inscrição(ões)`;
+
+  if (!list.length) { container.innerHTML = '<p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem">Nenhuma inscrição encontrada.</p>'; return; }
+
+  const sColor = { novo:'#FFD600', contatado:'#00c864', cancelado:'#D32F2F' };
+  const sLabel = { novo:'Novo', contatado:'Contatado', cancelado:'Cancelado' };
+  const baseUrl = window.location.origin + window.location.pathname.replace('admin.html','');
+
+  container.innerHTML = list.map(e => {
+    const dt = e.createdAt?.toDate ? e.createdAt.toDate().toLocaleDateString('pt-BR') : '—';
+    const cor = sColor[e.status] || '#888';
+    const lbl = sLabel[e.status] || e.status;
+    const comprUrl = `${baseUrl}comprovante.html?id=${e.id}`;
+    return `
+    <div class="enroll-item">
+      <div class="enroll-main-info">
+        <div class="enroll-atleta">
+          ${e.atletaNome || '—'}
+          <span class="enroll-badge" style="color:${cor};border-color:${cor}">${lbl}</span>
+        </div>
+        <div class="enroll-details">
+          <div class="enroll-detail"><div class="dl">Nascimento</div><div class="dv">${e.nascimento||'—'}</div></div>
+          <div class="enroll-detail"><div class="dl">Categoria</div><div class="dv">${e.categoria||'—'}</div></div>
+          <div class="enroll-detail"><div class="dl">Turno</div><div class="dv">${e.turno||'—'}</div></div>
+          <div class="enroll-detail"><div class="dl">Responsável</div><div class="dv">${e.responsavel||'—'}</div></div>
+          <div class="enroll-detail"><div class="dl">Telefone</div><div class="dv">${e.telefone||'—'}</div></div>
+          <div class="enroll-detail"><div class="dl">E-mail</div><div class="dv">${e.email||'—'}</div></div>
+          <div class="enroll-detail"><div class="dl">CPF Resp.</div><div class="dv">${e.cpfResponsavel||'—'}</div></div>
+          <div class="enroll-detail"><div class="dl">Enviado em</div><div class="dv">${dt}</div></div>
+          <div class="enroll-detail"><div class="dl">Protocolo</div><div class="dv">${e.protocolo||'—'}</div></div>
+        </div>
+        ${e.endereco ? `<div style="margin-top:6px;font-size:0.82rem;color:#777;font-family:var(--font-cond);letter-spacing:1px">📍 ${e.endereco}</div>` : ''}
+        ${e.observacoes ? `<div style="margin-top:4px;font-size:0.82rem;color:#666">Obs: ${e.observacoes}</div>` : ''}
+      </div>
+      <div class="enroll-actions">
+        <a href="${comprUrl}" target="_blank" class="btn-print-enroll">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Ver/Imprimir
+        </a>
+        <button class="btn-ok" onclick="updateStatus('${e.id}','contatado')">Contatado</button>
+        <button class="btn-ok" style="border-color:rgba(211,47,47,0.35);color:var(--red)" onclick="updateStatus('${e.id}','cancelado')">Cancelar</button>
+        <button class="btn-del" onclick="deleteEnrollment('${e.id}')">Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function updateStatus(id, status) {
+  const { doc, updateDoc } = window._firebase;
+  await updateDoc(doc(window._db,'inscricoes',id), { status });
+  const item = _enrollments.find(e => e.id === id);
+  if (item) item.status = status;
+  renderEnrollments('all');
+}
+
+async function deleteEnrollment(id) {
+  if (!confirm('Excluir esta inscrição permanentemente?')) return;
+  const { doc, deleteDoc } = window._firebase;
+  await deleteDoc(doc(window._db,'inscricoes',id));
+  _enrollments = _enrollments.filter(e => e.id !== id);
+  renderEnrollments('all');
+}
+
+// ====================================================
+// GENERIC DELETE
+// ====================================================
+async function deleteDoc_(col, id, listId, reloadFn) {
+  if (!confirm('Excluir este item?')) return;
+  const { doc, deleteDoc } = window._firebase;
+  await deleteDoc(doc(window._db, col, id));
+  reloadFn();
+}
+</script>
+</body>
+</html>
