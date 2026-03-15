@@ -52,6 +52,11 @@
     if (cfg.faviconUrl)  document.getElementById("favicon-link").href = cfg.faviconUrl;
     // logo — todos os elementos com a classe
     if (cfg.logoUrl)     document.querySelectorAll(".site-logo-img").forEach(el => { el.src = cfg.logoUrl; el.style.display = ""; });
+    // about image (separate from logo)
+    if (cfg.aboutImgUrl) {
+      const ai = document.getElementById("about-main-img");
+      if (ai) { ai.src = cfg.aboutImgUrl; ai.style.display = ""; }
+    }
     // hero imagens
     if (cfg.heroBgUrl) {
       const bg  = document.getElementById("hero-bg-img");
@@ -1251,7 +1256,7 @@ section { padding: 90px 5%; }
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  background: var(--black);
   color: var(--white);
   font-family: var(--font-cond);
   font-weight: 700;
@@ -1262,8 +1267,9 @@ section { padding: 90px 5%; }
   padding: 14px 36px;
   border-radius: 4px;
   transition: all 0.3s;
+  border: 2px solid rgba(255,255,255,0.15);
 }
-.btn-instagram:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(220,39,67,0.4); }
+.btn-instagram:hover { transform: translateY(-3px); background: var(--red); border-color: var(--red); box-shadow: 0 12px 30px rgba(211,47,47,0.3); }
 /* Instagram embed placeholder */
 .instagram-grid-placeholder {
   display: grid;
@@ -1915,8 +1921,8 @@ footer {
          onerror="this.style.display='none'"
          style="background:transparent">
     <div>
-      <span class="nav-logo-text">ADB</span>
-      <span class="nav-logo-sub">Bernardense</span>
+      <span class="nav-logo-text" style="font-size:1rem;letter-spacing:1px">ASSOCIAÇÃO DESPORTIVA</span>
+      <span class="nav-logo-sub">Bernardense · Desde 2017</span>
     </div>
   </a>
   <ul class="nav-links">
@@ -1926,7 +1932,10 @@ footer {
     <li><a href="#gallery">Galeria</a></li>
     <li><a href="#enrollment">Inscrição</a></li>
     <li><a href="#contact">Contato</a></li>
-    <li><a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="nav-instagram instagram-link">📷 Instagram</a></li>
+    <li><a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="nav-instagram instagram-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      Instagram
+    </a></li>
   </ul>
   <div class="nav-hamburger" onclick="toggleMobileMenu()">
     <span></span><span></span><span></span>
@@ -2035,14 +2044,12 @@ footer {
 <section id="about" class="section-light">
   <div class="about-grid">
     <div class="about-img-stack" data-aos>
-      <img class="about-img-main site-logo-img" src="" alt="Associação Desportiva Bernardense" 
-           onerror="this.style.display='none'; this.parentNode.style.background='#1a1a1a'">
+      <img id="about-main-img" src="" alt="Associação Desportiva Bernardense" 
+           style="width:100%;height:100%;object-fit:contain;display:block;background:transparent"
+           onerror="this.style.display='none'">
       <div class="about-img-badge">
         <strong>2017</strong>
         <span>Fundação</span>
-      </div>
-      <div class="about-logo-overlay">
-        <img src="" alt="" class="site-logo-img" onerror="this.style.display='none'">
       </div>
     </div>
     <div data-aos>
@@ -2170,7 +2177,7 @@ footer {
         </div>
         <div>
           <div class="contact-label">Endereço</div>
-          <div class="contact-value" id="contact-address">Rua da Associação, 123 — São Bernardo</div>
+          <div class="contact-value" id="contact-address">R. Santos Réis, 2-250 — St. Divinopolis, Padre Bernardo - GO, 73700-000</div>
         </div>
       </div>
       <div class="contact-item">
@@ -2179,7 +2186,7 @@ footer {
         </div>
         <div>
           <div class="contact-label">Telefone</div>
-          <div class="contact-value" id="contact-phone">(11) 00000-0000</div>
+          <div class="contact-value" id="contact-phone">61 99680-9456</div>
         </div>
       </div>
       <div class="contact-item">
@@ -2202,10 +2209,8 @@ footer {
       </div>
     </div>
     <div class="contact-map">
-      <div class="contact-map-placeholder">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#bbb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="36" height="36"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-        Mapa — Configure no Admin
-      </div>
+      <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3851.0307020302125!2d-48.2777886!3d-15.156658499999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x935b3d7f2f623d19%3A0xd743f911cd4b6e9f!2sR.%20Santos%20R%C3%A9is%2C%202%20-%20St.%20Divinopolis%2C%20Padre%20Bernardo%20-%20GO%2C%2073700-000!5e0!3m2!1spt-BR!2sbr!4v1773592500474!5m2!1spt-BR!2sbr" 
+        width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
     </div>
   </div>
 </section>

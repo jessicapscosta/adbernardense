@@ -350,6 +350,11 @@ body { background: var(--black); color: var(--white); font-family: var(--font-bo
               <input type="file" accept="image/*,image/x-icon" onchange="uploadToCloudinary(this,'prev-favicon','faviconUrl')">
               <div class="admin-preview" id="prev-favicon"></div>
             </div>
+            <div class="admin-field">
+              <label>Imagem da seção Sobre (PNG sem fundo)</label>
+              <input type="file" accept="image/*" onchange="uploadToCloudinary(this,'prev-aboutimg','aboutImgUrl')">
+              <div class="admin-preview" id="prev-aboutimg"></div>
+            </div>
           </div>
           <div class="admin-field"><label>Nome do site</label><input type="text" id="cfg-siteName" placeholder="Associação Desportiva Bernardense"></div>
           <div class="admin-field"><label>Link do Instagram</label><input type="url" id="cfg-instagramUrl" placeholder="https://www.instagram.com/a.d.bernardense"></div>
@@ -361,6 +366,18 @@ body { background: var(--black); color: var(--white); font-family: var(--font-bo
             Salvar
           </button>
           <div class="admin-msg" id="msg-general"></div>
+        </div>
+
+        <!-- HISTÓRICO DE IMAGENS -->
+        <div class="admin-card">
+          <h3>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Histórico de Imagens
+          </h3>
+          <p style="font-family:var(--font-cond);font-size:0.78rem;letter-spacing:1px;color:var(--gray);margin-bottom:14px">Clique numa imagem para selecionar e usar em qualquer campo.</p>
+          <div id="img-history-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px">
+            <p style="color:var(--gray);font-family:var(--font-cond);font-size:0.78rem;letter-spacing:1px">Carregando...</p>
+          </div>
         </div>
       </div>
 
@@ -458,8 +475,12 @@ body { background: var(--black); color: var(--white); font-family: var(--font-bo
       <!-- NOTÍCIAS -->
       <div class="admin-section" id="section-news">
         <div class="admin-section-title">Notícias & Eventos</div>
-        <div class="admin-card">
-          <h3>Nova Notícia</h3>
+        <div class="admin-card" id="news-form-card">
+          <h3 id="news-form-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Nova Notícia
+          </h3>
+          <input type="hidden" id="news-edit-id">
           <div class="admin-grid2">
             <div class="admin-field"><label>Título</label><input type="text" id="news-title"></div>
             <div class="admin-field"><label>Categoria</label><input type="text" id="news-category" placeholder="Notícia / Evento / Resultado"></div>
@@ -467,14 +488,21 @@ body { background: var(--black); color: var(--white); font-family: var(--font-bo
           </div>
           <div class="admin-field"><label>Resumo</label><textarea id="news-excerpt" rows="3"></textarea></div>
           <div class="admin-field">
-            <label>Imagem</label>
+            <label>Imagem — upload novo</label>
             <input type="file" accept="image/*" onchange="uploadToCloudinary(this,'prev-news','_newsImageUrl')">
             <div class="admin-preview" id="prev-news"></div>
           </div>
-          <button class="btn-admin" onclick="saveNews()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Publicar
-          </button>
+          <div class="admin-field">
+            <label>Ou selecione do histórico</label>
+            <div id="news-img-history" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin-top:6px"></div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn-admin" onclick="saveNews()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+              <span id="news-save-label">Publicar</span>
+            </button>
+            <button class="btn-admin outline" id="news-cancel-edit" style="display:none" onclick="cancelNewsEdit()">Cancelar edição</button>
+          </div>
           <div class="admin-msg" id="msg-news"></div>
         </div>
         <div class="admin-card">
@@ -487,7 +515,11 @@ body { background: var(--black); color: var(--white); font-family: var(--font-bo
       <div class="admin-section" id="section-games">
         <div class="admin-section-title">Jogos & Resultados</div>
         <div class="admin-card">
-          <h3>Adicionar Jogo</h3>
+          <h3 id="game-form-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Adicionar Jogo
+          </h3>
+          <input type="hidden" id="game-edit-id">
           <div class="admin-grid2">
             <div class="admin-field"><label>Mandante</label><input type="text" id="game-home" placeholder="ADB"></div>
             <div class="admin-field"><label>Visitante</label><input type="text" id="game-away"></div>
@@ -500,10 +532,13 @@ body { background: var(--black); color: var(--white); font-family: var(--font-bo
             <div class="admin-field"><label>Placar mandante</label><input type="number" id="game-home-score" placeholder="0"></div>
             <div class="admin-field"><label>Placar visitante</label><input type="number" id="game-away-score" placeholder="0"></div>
           </div>
-          <button class="btn-admin" onclick="saveGame()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Adicionar
-          </button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn-admin" onclick="saveGame()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+              <span id="game-save-label">Adicionar</span>
+            </button>
+            <button class="btn-admin outline" id="game-cancel-edit" style="display:none" onclick="cancelGameEdit()">Cancelar edição</button>
+          </div>
           <div class="admin-msg" id="msg-games"></div>
         </div>
         <div class="admin-card">
@@ -518,9 +553,13 @@ body { background: var(--black); color: var(--white); font-family: var(--font-bo
         <div class="admin-card">
           <h3>Adicionar Foto</h3>
           <div class="admin-field">
-            <label>Foto</label>
+            <label>Upload nova foto</label>
             <input type="file" accept="image/*" onchange="uploadToCloudinary(this,'prev-gallery','_galleryImageUrl')">
             <div class="admin-preview" id="prev-gallery"></div>
+          </div>
+          <div class="admin-field">
+            <label>Ou selecione do histórico</label>
+            <div id="gallery-img-history" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin-top:6px"></div>
           </div>
           <div class="admin-field"><label>Legenda</label><input type="text" id="gallery-title"></div>
           <button class="btn-admin" onclick="saveGalleryItem()">
@@ -528,6 +567,12 @@ body { background: var(--black); color: var(--white); font-family: var(--font-bo
             Adicionar
           </button>
           <div class="admin-msg" id="msg-gallery"></div>
+        </div>
+        <div class="admin-card">
+          <h3>Fotos na Galeria</h3>
+          <div id="gallery-admin-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px">
+            <p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem">Carregando...</p>
+          </div>
         </div>
       </div>
 
@@ -556,6 +601,7 @@ body { background: var(--black); color: var(--white); font-family: var(--font-bo
 // UTILS
 // ====================================================
 function v(id) { return document.getElementById(id)?.value || ''; }
+function sv(id, val) { const el = document.getElementById(id); if(el) el.value = val || ''; }
 
 function showMsg(id, type, text) {
   const el = document.getElementById(id);
@@ -570,6 +616,10 @@ function showAdminSection(id) {
   const section = document.getElementById('section-' + id);
   if (section) section.classList.add('active');
   event.currentTarget.classList.add('active');
+  // Load image history when entering relevant sections
+  if (id === 'general') renderImgHistory('img-history-grid');
+  if (id === 'news') renderImgHistory('news-img-history');
+  if (id === 'gallery') { renderImgHistory('gallery-img-history'); loadAdminGallery(); }
 }
 
 // ====================================================
@@ -577,7 +627,7 @@ function showAdminSection(id) {
 // ====================================================
 async function doAdminLogin() {
   const email = document.getElementById('admin-email').value;
-  const pass = document.getElementById('admin-password').value;
+  const pass  = document.getElementById('admin-password').value;
   const errEl = document.getElementById('admin-login-error');
   errEl.style.display = 'none';
   try {
@@ -593,27 +643,88 @@ async function doAdminLogout() {
 }
 
 // ====================================================
+// IMAGE HISTORY (localStorage)
+// ====================================================
+const IMG_HISTORY_KEY = 'adb_img_history';
+
+function getImgHistory() {
+  try { return JSON.parse(localStorage.getItem(IMG_HISTORY_KEY) || '[]'); } catch(e) { return []; }
+}
+function addToImgHistory(url) {
+  const h = getImgHistory().filter(u => u !== url);
+  h.unshift(url);
+  const trimmed = h.slice(0, 40); // max 40 imagens
+  try { localStorage.setItem(IMG_HISTORY_KEY, JSON.stringify(trimmed)); } catch(e) {}
+}
+
+function renderImgHistory(containerId, onSelect) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const history = getImgHistory();
+  if (!history.length) {
+    container.innerHTML = '<p style="color:var(--gray);font-family:var(--font-cond);font-size:0.75rem;letter-spacing:1px;grid-column:1/-1">Nenhuma imagem no histórico ainda.</p>';
+    return;
+  }
+  container.innerHTML = history.map(url => `
+    <div onclick="selectHistoryImg('${url}','${containerId}')" style="
+      aspect-ratio:1;background-image:url('${url}');background-size:cover;background-position:center;
+      border-radius:6px;border:2px solid transparent;cursor:pointer;transition:border-color 0.2s;
+      position:relative;overflow:hidden" 
+      data-url="${url}"
+      onmouseover="this.style.borderColor='var(--red)'" 
+      onmouseout="this.style.borderColor='transparent'">
+    </div>`).join('');
+}
+
+function selectHistoryImg(url, fromContainerId) {
+  // Highlight selected
+  const container = document.getElementById(fromContainerId);
+  if (container) {
+    container.querySelectorAll('[data-url]').forEach(el => el.style.borderColor = 'transparent');
+    const selected = container.querySelector(`[data-url="${url}"]`);
+    if (selected) selected.style.borderColor = 'var(--gold)';
+  }
+
+  // Apply to right field based on container
+  if (fromContainerId === 'news-img-history') {
+    window._uploadedUrls._newsImageUrl = url;
+    const p = document.getElementById('prev-news');
+    if (p) p.innerHTML = `<img src="${url}"><div style="font-family:var(--font-cond);font-size:0.72rem;letter-spacing:1px;color:var(--gold);padding:4px 2px">✅ Selecionado do histórico</div>`;
+  } else if (fromContainerId === 'gallery-img-history') {
+    window._uploadedUrls._galleryImageUrl = url;
+    const p = document.getElementById('prev-gallery');
+    if (p) p.innerHTML = `<img src="${url}"><div style="font-family:var(--font-cond);font-size:0.72rem;letter-spacing:1px;color:var(--gold);padding:4px 2px">✅ Selecionado do histórico</div>`;
+  } else if (fromContainerId === 'img-history-grid') {
+    // show modal to pick which field
+    const choice = prompt('Usar como:\n1 — Logo\n2 — Imagem seção Sobre\n3 — Hero Background\n4 — Hero Personagem\n\nDigite o número:');
+    const map = { '1':'logoUrl','2':'aboutImgUrl','3':'heroBgUrl','4':'heroCharUrl' };
+    const key = map[choice?.trim()];
+    if (key) {
+      window._uploadedUrls[key] = url;
+      alert(`✅ Imagem vinculada! Agora clique em Salvar para aplicar.`);
+    }
+  }
+}
+
+// ====================================================
 // CLOUDINARY
 // ====================================================
 window._uploadedUrls = {};
+
 async function uploadToCloudinary(input, previewId, urlKey) {
   const file = input.files[0];
   if (!file) return;
   const previewEl = document.getElementById(previewId);
 
-  // Mostra preview local imediato
   if (file.type !== 'application/pdf') {
     const localUrl = URL.createObjectURL(file);
     if (previewEl) previewEl.innerHTML = `<img src="${localUrl}" style="opacity:0.5;filter:blur(1px)">`;
   }
 
-  if (previewEl) {
-    const bar = document.createElement('div');
-    bar.style.cssText = 'font-family:var(--font-cond);font-size:0.75rem;letter-spacing:1px;color:var(--gold);margin-top:6px';
-    bar.textContent = 'Enviando para Cloudinary...';
-    bar.id = 'bar-' + previewId;
-    previewEl.appendChild(bar);
-  }
+  const loadingDiv = document.createElement('div');
+  loadingDiv.style.cssText = 'font-family:var(--font-cond);font-size:0.75rem;letter-spacing:1px;color:var(--gold);margin-top:6px';
+  loadingDiv.textContent = '⏳ Enviando para Cloudinary...';
+  if (previewEl) previewEl.appendChild(loadingDiv);
 
   const fd = new FormData();
   fd.append('file', file);
@@ -626,11 +737,15 @@ async function uploadToCloudinary(input, previewId, urlKey) {
     if (data.error) throw new Error(data.error.message);
 
     window._uploadedUrls[urlKey] = data.secure_url;
-    console.log(`✅ Cloudinary upload OK [${urlKey}]:`, data.secure_url);
+    addToImgHistory(data.secure_url); // salva no histórico
+    // refresh visible histories
+    renderImgHistory('img-history-grid');
+    renderImgHistory('news-img-history');
+    renderImgHistory('gallery-img-history');
 
     if (previewEl) {
       if (file.type === 'application/pdf') {
-        previewEl.innerHTML = `<div style="font-family:var(--font-cond);font-size:0.78rem;letter-spacing:1px;color:#00c864;padding:8px 0">✅ PDF enviado com sucesso</div>`;
+        previewEl.innerHTML = `<div style="font-family:var(--font-cond);font-size:0.78rem;letter-spacing:1px;color:#00c864;padding:8px 0">✅ PDF enviado</div>`;
       } else {
         previewEl.innerHTML = `
           <img src="${data.secure_url}">
@@ -638,8 +753,7 @@ async function uploadToCloudinary(input, previewId, urlKey) {
       }
     }
   } catch(e) {
-    console.error('Cloudinary error:', e);
-    if (previewEl) previewEl.innerHTML = `<div style="font-family:var(--font-cond);font-size:0.75rem;color:var(--red);padding:6px 0">❌ Falha no upload: ${e.message}</div>`;
+    if (previewEl) previewEl.innerHTML = `<div style="font-family:var(--font-cond);font-size:0.75rem;color:var(--red);padding:6px 0">❌ Erro: ${e.message}</div>`;
   }
 }
 
@@ -657,11 +771,11 @@ async function loadAdminConfig() {
         'heroTitle','heroSubtitle','heroBtnText','heroBtnLink',
         'transparencyPdfUrl','contactAddress','contactPhone','contactEmail','mapUrl'];
       fields.forEach(k => { const el = document.getElementById('cfg-'+k); if(el && _cfg[k]) el.value = _cfg[k]; });
-      if (_cfg.siteName) document.getElementById('cfg-seoTitle').value = _cfg.siteName;
-      if (_cfg.metaDesc) document.getElementById('cfg-seoDesc').value = _cfg.metaDesc;
-      if (_cfg.metaKeywords) document.getElementById('cfg-seoKeywords').value = _cfg.metaKeywords;
-      if (_cfg.logoUrl) document.querySelectorAll('.site-logo-img').forEach(el => el.src = _cfg.logoUrl);
-      if (_cfg.faviconUrl) document.getElementById('favicon-link').href = _cfg.faviconUrl;
+      if (_cfg.siteName)     sv('cfg-seoTitle', _cfg.siteName);
+      if (_cfg.metaDesc)     sv('cfg-seoDesc', _cfg.metaDesc);
+      if (_cfg.metaKeywords) sv('cfg-seoKeywords', _cfg.metaKeywords);
+      if (_cfg.logoUrl)     document.querySelectorAll('.site-logo-img').forEach(el => el.src = _cfg.logoUrl);
+      if (_cfg.faviconUrl)  document.getElementById('favicon-link').href = _cfg.faviconUrl;
     }
   } catch(e) {}
 }
@@ -669,25 +783,27 @@ async function loadAdminConfig() {
 async function saveConfig(extra, msgId) {
   const { doc, setDoc } = window._firebase;
   try {
-    // Garante que URLs do Cloudinary estão no objeto
     const merged = { ..._cfg, ...extra };
     await setDoc(doc(window._db,'config','site'), merged, { merge:true });
     _cfg = merged;
-    // Invalida cache do site para forçar reload fresco
     try { localStorage.removeItem('adb_site_cache_v1'); } catch(e) {}
     showMsg(msgId, 'success', '✅ Salvo! Cache limpo — site atualizado.');
   } catch(e) { showMsg(msgId, 'error', '❌ Erro: ' + e.message); }
 }
 
 function saveGeneralConfig() {
-  const d = { siteName:v('cfg-siteName'), instagramUrl:v('cfg-instagramUrl'), footerText:v('cfg-footerText'), aboutText:v('cfg-aboutText'), aboutTitle:v('cfg-aboutTitle') };
-  if (window._uploadedUrls.logoUrl) d.logoUrl = window._uploadedUrls.logoUrl;
-  if (window._uploadedUrls.faviconUrl) d.faviconUrl = window._uploadedUrls.faviconUrl;
+  const d = {
+    siteName: v('cfg-siteName'), instagramUrl: v('cfg-instagramUrl'),
+    footerText: v('cfg-footerText'), aboutText: v('cfg-aboutText'), aboutTitle: v('cfg-aboutTitle')
+  };
+  if (window._uploadedUrls.logoUrl)      d.logoUrl      = window._uploadedUrls.logoUrl;
+  if (window._uploadedUrls.faviconUrl)   d.faviconUrl   = window._uploadedUrls.faviconUrl;
+  if (window._uploadedUrls.aboutImgUrl)  d.aboutImgUrl  = window._uploadedUrls.aboutImgUrl;
   saveConfig(d, 'msg-general');
 }
 function saveHeroConfig() {
   const d = { heroTitle:v('cfg-heroTitle'), heroSubtitle:v('cfg-heroSubtitle'), heroBtnText:v('cfg-heroBtnText'), heroBtnLink:v('cfg-heroBtnLink') };
-  if (window._uploadedUrls.heroBgUrl) d.heroBgUrl = window._uploadedUrls.heroBgUrl;
+  if (window._uploadedUrls.heroBgUrl)   d.heroBgUrl   = window._uploadedUrls.heroBgUrl;
   if (window._uploadedUrls.heroCharUrl) d.heroCharUrl = window._uploadedUrls.heroCharUrl;
   saveConfig(d, 'msg-hero');
 }
@@ -699,70 +815,224 @@ function saveContactConfig() {
 }
 function saveTransparency() {
   const url = window._uploadedUrls.transparencyPdfUrl || v('cfg-transparencyPdfUrl');
-  if (!url) { showMsg('msg-transparency','error','❌ Adicione um PDF ou um link.'); return; }
-  saveConfig({ transparencyPdfUrl:url }, 'msg-transparency');
+  if (!url) { showMsg('msg-transparency','error','❌ Adicione um PDF ou link.'); return; }
+  saveConfig({ transparencyPdfUrl: url }, 'msg-transparency');
 }
 
 // ====================================================
-// NEWS
+// NEWS — CRUD
 // ====================================================
 async function saveNews() {
-  const { addDoc, collection } = window._firebase;
+  const { addDoc, doc, updateDoc, collection } = window._firebase;
+  const editId = v('news-edit-id');
+  const imageUrl = window._uploadedUrls._newsImageUrl || _cfg._editNewsImg || '';
+  const payload = {
+    title: v('news-title'), excerpt: v('news-excerpt'),
+    date: v('news-date'), category: v('news-category'), imageUrl
+  };
+
   try {
-    await addDoc(collection(window._db,'news'), { title:v('news-title'), excerpt:v('news-excerpt'), date:v('news-date'), category:v('news-category'), imageUrl:window._uploadedUrls._newsImageUrl||'', createdAt:new Date() });
+    if (editId) {
+      await updateDoc(doc(window._db,'news',editId), payload);
+      showMsg('msg-news','success','✅ Notícia atualizada!');
+      cancelNewsEdit();
+    } else {
+      payload.createdAt = new Date();
+      await addDoc(collection(window._db,'news'), payload);
+      showMsg('msg-news','success','✅ Publicado!');
+    }
     try { localStorage.removeItem('adb_site_cache_v1'); } catch(e) {}
-    showMsg('msg-news','success','✅ Publicado! Cache limpo.');
-    ['news-title','news-excerpt','news-date','news-category'].forEach(id => document.getElementById(id).value='');
-    window._uploadedUrls._newsImageUrl=''; document.getElementById('prev-news').innerHTML='';
+    ['news-title','news-excerpt','news-date','news-category','news-edit-id'].forEach(id => sv(id,''));
+    window._uploadedUrls._newsImageUrl = '';
+    document.getElementById('prev-news').innerHTML = '';
     loadAdminNews();
   } catch(e) { showMsg('msg-news','error','❌ '+e.message); }
 }
+
+function editNews(id, n) {
+  sv('news-edit-id', id);
+  sv('news-title', n.title);
+  sv('news-excerpt', n.excerpt);
+  sv('news-date', n.date);
+  sv('news-category', n.category);
+  if (n.imageUrl) {
+    window._uploadedUrls._newsImageUrl = n.imageUrl;
+    _cfg._editNewsImg = n.imageUrl;
+    document.getElementById('prev-news').innerHTML = `<img src="${n.imageUrl}"><div style="font-family:var(--font-cond);font-size:0.72rem;letter-spacing:1px;color:var(--gold);padding:4px 2px">Imagem atual</div>`;
+  }
+  document.getElementById('news-form-title').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editando Notícia`;
+  document.getElementById('news-save-label').textContent = 'Salvar alterações';
+  document.getElementById('news-cancel-edit').style.display = '';
+  document.getElementById('news-form-card').scrollIntoView({ behavior:'smooth' });
+}
+
+function cancelNewsEdit() {
+  sv('news-edit-id',''); sv('news-title',''); sv('news-excerpt',''); sv('news-date',''); sv('news-category','');
+  window._uploadedUrls._newsImageUrl = ''; _cfg._editNewsImg = '';
+  document.getElementById('prev-news').innerHTML = '';
+  document.getElementById('news-form-title').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Nova Notícia`;
+  document.getElementById('news-save-label').textContent = 'Publicar';
+  document.getElementById('news-cancel-edit').style.display = 'none';
+}
+
 async function loadAdminNews() {
   const { collection, getDocs, orderBy, query, doc, deleteDoc } = window._firebase;
   try {
     const snap = await getDocs(query(collection(window._db,'news'), orderBy('createdAt','desc')));
     const c = document.getElementById('news-admin-list');
     if (snap.empty) { c.innerHTML='<p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem">Nenhuma notícia.</p>'; return; }
-    c.innerHTML='';
-    snap.forEach(d => { const n=d.data(); c.innerHTML+=`<div class="admin-list-item"><div><div class="ali-title">${n.title}</div><div class="ali-sub">${n.date} · ${n.category}</div></div><button class="btn-del" onclick="deleteDoc_('news','${d.id}','news-admin-list',loadAdminNews)">Excluir</button></div>`; });
+    c.innerHTML = '';
+    snap.forEach(d => {
+      const n = d.data();
+      const img = n.imageUrl ? `<img src="${n.imageUrl}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;flex-shrink:0">` : '';
+      c.innerHTML += `
+        <div class="admin-list-item">
+          <div style="display:flex;gap:12px;align-items:center;flex:1;min-width:0">
+            ${img}
+            <div style="min-width:0">
+              <div class="ali-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.title||'—'}</div>
+              <div class="ali-sub">${n.date||''} · ${n.category||''}</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn-ok" onclick='editNews("${d.id}", ${JSON.stringify(n).replace(/'/g,"&#39;")})'>Editar</button>
+            <button class="btn-del" onclick="deleteNewsItem('${d.id}')">Excluir</button>
+          </div>
+        </div>`;
+    });
   } catch(e) {}
 }
 
+async function deleteNewsItem(id) {
+  if (!confirm('Excluir esta notícia?')) return;
+  const { doc, deleteDoc } = window._firebase;
+  await deleteDoc(doc(window._db,'news',id));
+  try { localStorage.removeItem('adb_site_cache_v1'); } catch(e) {}
+  loadAdminNews();
+}
+
 // ====================================================
-// GAMES
+// GAMES — CRUD
 // ====================================================
 async function saveGame() {
-  const { addDoc, collection } = window._firebase;
+  const { addDoc, doc, updateDoc, collection } = window._firebase;
+  const editId = v('game-edit-id');
+  const payload = {
+    home: v('game-home'), away: v('game-away'), date: v('game-date'),
+    local: v('game-local'), category: v('game-category'), status: v('game-status'),
+    homeScore: v('game-home-score'), awayScore: v('game-away-score')
+  };
   try {
-    await addDoc(collection(window._db,'games'), { home:v('game-home'), away:v('game-away'), date:v('game-date'), local:v('game-local'), category:v('game-category'), status:v('game-status'), homeScore:v('game-home-score'), awayScore:v('game-away-score') });
-    showMsg('msg-games','success','✅ Jogo adicionado!');
+    if (editId) {
+      await updateDoc(doc(window._db,'games',editId), payload);
+      showMsg('msg-games','success','✅ Jogo atualizado!');
+      cancelGameEdit();
+    } else {
+      await addDoc(collection(window._db,'games'), payload);
+      showMsg('msg-games','success','✅ Jogo adicionado!');
+    }
+    try { localStorage.removeItem('adb_site_cache_v1'); } catch(e) {}
     loadAdminGames();
   } catch(e) { showMsg('msg-games','error','❌ '+e.message); }
 }
+
+function editGame(id, g) {
+  sv('game-edit-id', id);
+  sv('game-home', g.home); sv('game-away', g.away); sv('game-date', g.date);
+  sv('game-local', g.local); sv('game-category', g.category); sv('game-status', g.status);
+  sv('game-home-score', g.homeScore); sv('game-away-score', g.awayScore);
+  document.getElementById('game-form-title').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Editando Jogo`;
+  document.getElementById('game-save-label').textContent = 'Salvar alterações';
+  document.getElementById('game-cancel-edit').style.display = '';
+  document.querySelector('#section-games .admin-card').scrollIntoView({ behavior:'smooth' });
+}
+
+function cancelGameEdit() {
+  sv('game-edit-id','');
+  ['game-home','game-away','game-date','game-local','game-category','game-home-score','game-away-score'].forEach(id => sv(id,''));
+  sv('game-status','upcoming');
+  document.getElementById('game-form-title').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Adicionar Jogo`;
+  document.getElementById('game-save-label').textContent = 'Adicionar';
+  document.getElementById('game-cancel-edit').style.display = 'none';
+}
+
 async function loadAdminGames() {
   const { collection, getDocs } = window._firebase;
   try {
     const snap = await getDocs(collection(window._db,'games'));
     const c = document.getElementById('games-admin-list');
     if (snap.empty) { c.innerHTML='<p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem">Nenhum jogo.</p>'; return; }
-    c.innerHTML='';
-    snap.forEach(d => { const g=d.data(); c.innerHTML+=`<div class="admin-list-item"><div><div class="ali-title">${g.home} vs ${g.away}</div><div class="ali-sub">${g.date} · ${g.category} · ${g.status==='result'?g.homeScore+' × '+g.awayScore:'Próximo'}</div></div><button class="btn-del" onclick="deleteDoc_('games','${d.id}','games-admin-list',loadAdminGames)">Excluir</button></div>`; });
+    c.innerHTML = '';
+    snap.forEach(d => {
+      const g = d.data();
+      c.innerHTML += `
+        <div class="admin-list-item">
+          <div>
+            <div class="ali-title">${g.home||'?'} vs ${g.away||'?'}</div>
+            <div class="ali-sub">${g.date||''} · ${g.category||''} · ${g.status==='result'?(g.homeScore+' × '+g.awayScore):'Próximo'}</div>
+          </div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn-ok" onclick='editGame("${d.id}", ${JSON.stringify(g).replace(/'/g,"&#39;")})'>Editar</button>
+            <button class="btn-del" onclick="deleteGame('${d.id}')">Excluir</button>
+          </div>
+        </div>`;
+    });
   } catch(e) {}
 }
 
+async function deleteGame(id) {
+  if (!confirm('Excluir este jogo?')) return;
+  const { doc, deleteDoc } = window._firebase;
+  await deleteDoc(doc(window._db,'games',id));
+  try { localStorage.removeItem('adb_site_cache_v1'); } catch(e) {}
+  loadAdminGames();
+}
+
 // ====================================================
-// GALLERY
+// GALLERY — CRUD
 // ====================================================
 async function saveGalleryItem() {
   const url = window._uploadedUrls._galleryImageUrl;
-  if (!url) { showMsg('msg-gallery','error','❌ Aguarde o upload terminar antes de salvar.'); return; }
+  if (!url) { showMsg('msg-gallery','error','❌ Aguarde o upload ou selecione do histórico.'); return; }
   const { addDoc, collection } = window._firebase;
   try {
     await addDoc(collection(window._db,'gallery'), { url, title:v('gallery-title'), createdAt:new Date() });
     try { localStorage.removeItem('adb_site_cache_v1'); } catch(e) {}
-    showMsg('msg-gallery','success','✅ Foto adicionada! Cache limpo.');
-    document.getElementById('gallery-title').value=''; window._uploadedUrls._galleryImageUrl=''; document.getElementById('prev-gallery').innerHTML='';
+    showMsg('msg-gallery','success','✅ Foto adicionada!');
+    sv('gallery-title','');
+    window._uploadedUrls._galleryImageUrl = '';
+    document.getElementById('prev-gallery').innerHTML = '';
+    loadAdminGallery();
   } catch(e) { showMsg('msg-gallery','error','❌ '+e.message); }
+}
+
+async function loadAdminGallery() {
+  const { collection, getDocs, orderBy, query } = window._firebase;
+  try {
+    const snap = await getDocs(query(collection(window._db,'gallery'), orderBy('createdAt','desc')));
+    const c = document.getElementById('gallery-admin-grid');
+    if (snap.empty) { c.innerHTML='<p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem;grid-column:1/-1">Nenhuma foto ainda.</p>'; return; }
+    c.innerHTML = '';
+    snap.forEach(d => {
+      const g = d.data();
+      c.innerHTML += `
+        <div style="position:relative;border-radius:6px;overflow:hidden;aspect-ratio:1">
+          <img src="${g.url}" style="width:100%;height:100%;object-fit:cover;display:block">
+          <div style="position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;opacity:0;transition:opacity 0.2s" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0">
+            ${g.title ? `<span style="font-family:var(--font-cond);font-size:0.7rem;letter-spacing:1px;color:#fff;text-align:center;padding:0 8px">${g.title}</span>` : ''}
+            <button onclick="deleteGalleryItem('${d.id}')" style="background:var(--red);border:none;color:#fff;font-family:var(--font-cond);font-size:0.7rem;font-weight:700;letter-spacing:1px;padding:5px 12px;border-radius:4px;cursor:pointer">Excluir</button>
+          </div>
+        </div>`;
+    });
+  } catch(e) {}
+}
+
+async function deleteGalleryItem(id) {
+  if (!confirm('Excluir esta foto da galeria?')) return;
+  const { doc, deleteDoc } = window._firebase;
+  await deleteDoc(doc(window._db,'gallery',id));
+  try { localStorage.removeItem('adb_site_cache_v1'); } catch(e) {}
+  loadAdminGallery();
 }
 
 // ====================================================
@@ -789,25 +1059,18 @@ function renderEnrollments(filter) {
   const list = filter === 'all' ? _enrollments : _enrollments.filter(e => e.status === filter);
   const container = document.getElementById('enrollments-list');
   document.getElementById('enroll-count').textContent = `${list.length} inscrição(ões)`;
-
   if (!list.length) { container.innerHTML = '<p style="color:var(--gray);font-family:var(--font-cond);font-size:0.82rem">Nenhuma inscrição encontrada.</p>'; return; }
-
   const sColor = { novo:'#FFD600', contatado:'#00c864', cancelado:'#D32F2F' };
   const sLabel = { novo:'Novo', contatado:'Contatado', cancelado:'Cancelado' };
   const baseUrl = window.location.origin + window.location.pathname.replace('admin.html','');
-
   container.innerHTML = list.map(e => {
     const dt = e.createdAt?.toDate ? e.createdAt.toDate().toLocaleDateString('pt-BR') : '—';
-    const cor = sColor[e.status] || '#888';
-    const lbl = sLabel[e.status] || e.status;
+    const cor = sColor[e.status]||'#888'; const lbl = sLabel[e.status]||e.status;
     const comprUrl = `${baseUrl}comprovante.html?id=${e.id}`;
     return `
     <div class="enroll-item">
       <div class="enroll-main-info">
-        <div class="enroll-atleta">
-          ${e.atletaNome || '—'}
-          <span class="enroll-badge" style="color:${cor};border-color:${cor}">${lbl}</span>
-        </div>
+        <div class="enroll-atleta">${e.atletaNome||'—'}<span class="enroll-badge" style="color:${cor};border-color:${cor}">${lbl}</span></div>
         <div class="enroll-details">
           <div class="enroll-detail"><div class="dl">Nascimento</div><div class="dv">${e.nascimento||'—'}</div></div>
           <div class="enroll-detail"><div class="dl">Categoria</div><div class="dv">${e.categoria||'—'}</div></div>
@@ -819,8 +1082,8 @@ function renderEnrollments(filter) {
           <div class="enroll-detail"><div class="dl">Enviado em</div><div class="dv">${dt}</div></div>
           <div class="enroll-detail"><div class="dl">Protocolo</div><div class="dv">${e.protocolo||'—'}</div></div>
         </div>
-        ${e.endereco ? `<div style="margin-top:6px;font-size:0.82rem;color:#777;font-family:var(--font-cond);letter-spacing:1px">📍 ${e.endereco}</div>` : ''}
-        ${e.observacoes ? `<div style="margin-top:4px;font-size:0.82rem;color:#666">Obs: ${e.observacoes}</div>` : ''}
+        ${e.endereco?`<div style="margin-top:6px;font-size:0.82rem;color:#777;font-family:var(--font-cond);letter-spacing:1px">📍 ${e.endereco}</div>`:''}
+        ${e.observacoes?`<div style="margin-top:4px;font-size:0.82rem;color:#666">Obs: ${e.observacoes}</div>`:''}
       </div>
       <div class="enroll-actions">
         <a href="${comprUrl}" target="_blank" class="btn-print-enroll">
@@ -838,7 +1101,7 @@ function renderEnrollments(filter) {
 async function updateStatus(id, status) {
   const { doc, updateDoc } = window._firebase;
   await updateDoc(doc(window._db,'inscricoes',id), { status });
-  const item = _enrollments.find(e => e.id === id);
+  const item = _enrollments.find(e => e.id===id);
   if (item) item.status = status;
   renderEnrollments('all');
 }
@@ -847,18 +1110,8 @@ async function deleteEnrollment(id) {
   if (!confirm('Excluir esta inscrição permanentemente?')) return;
   const { doc, deleteDoc } = window._firebase;
   await deleteDoc(doc(window._db,'inscricoes',id));
-  _enrollments = _enrollments.filter(e => e.id !== id);
+  _enrollments = _enrollments.filter(e => e.id!==id);
   renderEnrollments('all');
-}
-
-// ====================================================
-// GENERIC DELETE
-// ====================================================
-async function deleteDoc_(col, id, listId, reloadFn) {
-  if (!confirm('Excluir este item?')) return;
-  const { doc, deleteDoc } = window._firebase;
-  await deleteDoc(doc(window._db, col, id));
-  reloadFn();
 }
 </script>
 </body>
