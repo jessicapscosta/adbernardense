@@ -9,6 +9,52 @@
 <link rel="icon" type="image/x-icon" id="favicon-link" href="">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
 <script src="https://static.elfsight.com/platform/platform.js" async></script>
+<script>
+// Expõe funções default no window para o módulo Firebase conseguir acessar
+window.renderDefaultNews = function() {
+  const el = document.getElementById('news-grid');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="news-card" data-aos>
+      <div class="news-img" style="background:linear-gradient(135deg,#D32F2F,#1a1a1a)"><span class="news-tag">Evento</span></div>
+      <div class="news-body"><p class="news-date">Mar 2026</p><h3>Campeonato Regional Sub-12</h3><p>Nossa equipe sub-12 está pronta para mais um desafio. Confira a tabela de jogos!</p></div>
+    </div>
+    <div class="news-card" data-aos>
+      <div class="news-img" style="background:linear-gradient(135deg,#333,#D32F2F)"><span class="news-tag">Notícia</span></div>
+      <div class="news-body"><p class="news-date">Fev 2026</p><h3>Inscrições Abertas para 2026</h3><p>As inscrições para a temporada 2026 estão abertas! Venha fazer parte do nosso time.</p></div>
+    </div>
+    <div class="news-card" data-aos>
+      <div class="news-img" style="background:linear-gradient(135deg,#FFD600,#D32F2F)"><span class="news-tag">Resultado</span></div>
+      <div class="news-body"><p class="news-date">Jan 2026</p><h3>ADB Vence Torneio de Verão</h3><p>Grande vitória no torneio de verão! Parabéns aos nossos leões!</p></div>
+    </div>`;
+};
+window.renderDefaultGames = function() {
+  const el = document.getElementById('games-list');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="game-card upcoming">
+      <div class="game-date-badge">20 Mar<br>15h00</div>
+      <div class="game-teams"><span class="team home">ADB</span><span class="score-or-vs">VS</span><span class="team away">Esporte Clube</span></div>
+      <div class="game-info">Campo Municipal · Sub-12</div>
+    </div>
+    <div class="game-card result">
+      <div class="game-date-badge">10 Mar<br>14h00</div>
+      <div class="game-teams"><span class="team home">ADB</span><span class="score-or-vs">3 × 1</span><span class="team away">Rival FC</span></div>
+      <div class="game-info">Campo ADB · Sub-10</div>
+    </div>`;
+};
+window.renderDefaultGallery = function() {
+  const grid = document.getElementById('gallery-grid');
+  if (!grid) return;
+  const gradients = [
+    'linear-gradient(135deg,#D32F2F,#1a1a1a)','linear-gradient(135deg,#1a1a1a,#D32F2F)',
+    'linear-gradient(135deg,#FFD600,#D32F2F)','linear-gradient(135deg,#D32F2F,#FFD600)',
+    'linear-gradient(135deg,#141414,#333)','linear-gradient(135deg,#B71C1C,#FFD600)',
+    'linear-gradient(135deg,#333,#B71C1C)','linear-gradient(135deg,#FFD600,#141414)',
+  ];
+  grid.innerHTML = gradients.map((g,i) => `<div class="gallery-item" style="background:${g}"><div class="gallery-overlay"><span>Foto ${i+1}</span></div></div>`).join('');
+};
+</script>
 
 <!-- Firebase -->
 <script type="module">
