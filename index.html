@@ -2221,7 +2221,7 @@ a[href*="eapps.com"] {
         </div>
         <div>
           <div class="contact-label">E-mail</div>
-          <div class="contact-value" id="contact-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="c8aba7a6bca9bca788a9acaaadbaa6a9baacada6bbade6aba7a5e6aaba">[email&#160;protected]</a></div>
+          <div class="contact-value" id="contact-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2c4f4342584d58436c4d484e495e424d5e4849425f49024f4341024e5e">[email&#160;protected]</a></div>
         </div>
       </div>
       <div class="contact-item">
@@ -2507,27 +2507,3 @@ async function uploadToCloudinary(input, previewId, urlKey) {
     if (urlKey === 'faviconUrl') document.getElementById('favicon-link').href = data.secure_url;
     if (urlKey === 'heroBgUrl') { document.getElementById('hero-bg-img').src = data.secure_url; document.getElementById('hero-bg-img-overlay').src = data.secure_url; }
     if (urlKey === 'heroCharUrl') document.getElementById('hero-char-img').src =
-<script>
-/* ── Remove badge Elfsight dinamicamente ── */
-(function(){
-  const SELS = [
-    '[class*="eapps-link"]',
-    '[class*="eapps-widget-toolbar"]',
-    '[class*="eapps-instagram-feed-title"]',
-    '[class*="eapps-instagram-feed-footer"]',
-    '[class*="eapps-instagram-feed-header-follow"]',
-    'a[href*="elfsight"]',
-    'a[href*="eapps.com"]'
-  ];
-  function hide(){
-    SELS.forEach(sel=>{
-      document.querySelectorAll(sel).forEach(el=>{
-        el.style.cssText='display:none!important;opacity:0!important;height:0!important;overflow:hidden!important;pointer-events:none!important';
-      });
-    });
-  }
-  hide();
-  [500,1000,2000,3000,5000].forEach(t=>setTimeout(hide,t));
-  new MutationObserver(hide).observe(document.body,{childList:true,subtree:true});
-})();
-</script>
