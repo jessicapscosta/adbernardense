@@ -293,6 +293,7 @@ body {
   z-index: 99999;
   transform: translate(-50%, -50%);
   transition: transform 0.05s;
+  display: none;
 }
 #cursor-trail {
   position: fixed;
@@ -305,6 +306,7 @@ body {
   transform: translate(-50%, -50%);
   opacity: 0.5;
   transition: left 0.12s ease, top 0.12s ease;
+  display: none;
 }
 
 /* ============================================
@@ -2388,6 +2390,8 @@ const cursorTrail = document.getElementById('cursor-trail');
 let mx = 0, my = 0;
 document.addEventListener('mousemove', e => {
   mx = e.clientX; my = e.clientY;
+  cursorBall.style.display = 'block';
+  cursorTrail.style.display = 'block';
   cursorBall.style.left = mx + 'px';
   cursorBall.style.top = my + 'px';
   cursorTrail.style.left = mx + 'px';

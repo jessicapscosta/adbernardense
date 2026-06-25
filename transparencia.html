@@ -476,12 +476,12 @@ footer {
 <body>
 
 <!-- NAV -->
-<nav>
+<nav id="main-nav">
   <a href="index.html" class="nav-logo">
-    <img src="" alt="ADB Logo" class="site-logo-img" onerror="this.style.display='none'">
+    <img src="" alt="ADB Logo" class="site-logo-img" onerror="this.style.display='none'" style="background:transparent">
     <div>
-      <span class="nav-logo-text">ADB</span>
-      <span class="nav-logo-sub">Bernardense</span>
+      <span class="nav-logo-text" style="font-size:1rem;letter-spacing:1px">ASSOCIAÇÃO DESPORTIVA BERNARDENSE</span>
+      <span class="nav-logo-sub">Desde 2017</span>
     </div>
   </a>
   <ul class="nav-links">
@@ -490,9 +490,12 @@ footer {
     <li><a href="index.html#games">Jogos</a></li>
     <li><a href="index.html#gallery">Galeria</a></li>
     <li><a href="index.html#enrollment">Inscrição</a></li>
-    <li><a href="transparencia.html" class="active">Transparência</a></li>
     <li><a href="index.html#contact">Contato</a></li>
-    <li><a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="nav-instagram">📷 Instagram</a></li>
+    <li><a href="transparencia.html" class="active">Transparência</a></li>
+    <li><a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="nav-instagram instagram-link">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+      Instagram
+    </a></li>
   </ul>
   <div class="nav-hamburger" onclick="document.getElementById('mobile-menu').classList.toggle('open')">
     <span></span><span></span><span></span>
@@ -505,9 +508,9 @@ footer {
   <a href="index.html#games">Jogos</a>
   <a href="index.html#gallery">Galeria</a>
   <a href="index.html#enrollment">Inscrição</a>
-  <a href="transparencia.html">Transparência</a>
   <a href="index.html#contact">Contato</a>
-  <a href="https://www.instagram.com/a.d.bernardense" target="_blank">📷 Instagram</a>
+  <a href="transparencia.html">Transparência</a>
+  <a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="instagram-link">📷 Instagram</a>
 </div>
 
 <!-- PAGE HERO -->
@@ -569,17 +572,9 @@ footer {
         <li><span>Fim de Vigência</span><strong>17/12/2027</strong></li>
       </ul>
       <div class="transparency-actions">
-        <a class="trans-btn" href="assets/transparencia/instrumentos-assinados.xlsx" download>
+        <a class="trans-btn" href="data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,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" download="instrumentos-assinados.xlsx">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Baixar Planilha (.xlsx)
-        </a>
-        <a class="trans-btn outline" id="transparency-link" href="#" target="_blank">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-          Documento de Transparência (PDF)
-        </a>
-        <a class="trans-btn outline" href="https://dd-publico.serpro.gov.br/extensions/painel/DiscricionariasInicio.html" target="_blank">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-          Consultar no Portal Oficial
         </a>
       </div>
     </div>
