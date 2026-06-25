@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transparência — Associação Desportiva Bernardense</title>
+<meta name="description" content="Dados públicos de transparência financeira da A.D. Bernardense — Termo de Fomento nº 996469, Ministério do Esporte.">
+<link rel="icon" type="image/x-icon" id="favicon-link" href="">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyBqhYAU2raJxvOr8U69spjIEg0CB_mrxVM",
+    authDomain: "adb-bernardense.firebaseapp.com",
+    projectId: "adb-bernardense",
+    storageBucket: "adb-bernardense.firebasestorage.app",
+    messagingSenderId: "272028652739",
+    appId: "1:272028652739:web:46ed1fa1a73a097e21fe76"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  async function loadConfig() {
+    try {
+      const snap = await getDoc(doc(db, "config", "site"));
+      if (snap.exists()) {
+        const cfg = snap.data();
+        if (cfg.logoUrl) document.querySelectorAll(".site-logo-img").forEach(el => el.src = cfg.logoUrl);
+        if (cfg.faviconUrl) document.getElementById("favicon-link").href = cfg.faviconUrl;
+        if (cfg.transparencyPdfUrl) {
+          document.getElementById("transparency-link").href = cfg.transparencyPdfUrl;
+        }
+      }
+    } catch(e) { console.log("Config não carregada"); }
+  }
+
+  document.addEventListener("DOMContentLoaded", loadConfig);
+</script>
+
+<style>
+:root {
+  --red: #D32F2F;
+  --red-light: #EF5350;
+  --red-dark: #B71C1C;
+  --black: #0A0A0A;
+  --black2: #141414;
+  --black3: #1E1E1E;
+  --gold: #FFD600;
+  --gold2: #FFA000;
+  --white: #FFFFFF;
+  --white2: #F5F5F5;
+  --gray: #888;
+  --gray2: #555;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'Barlow', sans-serif;
+  --font-cond: 'Barlow Condensed', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--white2);
+  color: var(--black);
+  font-family: var(--font-body);
+  overflow-x: hidden;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #eee; }
+::-webkit-scrollbar-thumb { background: var(--red); border-radius: 3px; }
+
+/* NAV */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 1000;
+  padding: 0 5%;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10,10,10,0.95);
+  backdrop-filter: blur(12px);
+  border-bottom: 2px solid rgba(211,47,47,0.3);
+}
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+}
+.nav-logo img.site-logo-img {
+  height: 50px;
+  width: 50px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px rgba(211,47,47,0.6));
+}
+.nav-logo-text {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  color: var(--white);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.nav-logo-sub {
+  font-size: 0.6rem;
+  font-family: var(--font-cond);
+  color: var(--gold);
+  letter-spacing: 4px;
+  display: block;
+}
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  list-style: none;
+}
+.nav-links a {
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--white2);
+  text-decoration: none;
+  position: relative;
+  transition: color 0.2s;
+}
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 0; right: 100%;
+  height: 2px;
+  background: var(--red);
+  transition: right 0.3s;
+}
+.nav-links a:hover { color: var(--red); }
+.nav-links a:hover::after { right: 0; }
+.nav-links a.active { color: var(--red); }
+.nav-links a.active::after { right: 0; }
+.nav-instagram {
+  background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+  color: white !important;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem !important;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.nav-instagram::after { display: none !important; }
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 5px;
+}
+.nav-hamburger span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--white);
+  transition: all 0.3s;
+}
+.mobile-menu {
+  display: none;
+  position: fixed;
+  top: 70px; left: 0; right: 0;
+  background: rgba(10,10,10,0.97);
+  padding: 20px 5%;
+  z-index: 999;
+  border-bottom: 2px solid var(--red);
+}
+.mobile-menu.open { display: block; }
+.mobile-menu a {
+  display: block;
+  padding: 12px 0;
+  font-family: var(--font-cond);
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--white2);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: color 0.2s, padding-left 0.2s;
+}
+.mobile-menu a:hover { color: var(--red); padding-left: 10px; }
+
+/* PAGE HERO */
+.page-hero {
+  background: var(--black);
+  padding: 120px 5% 60px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.page-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% 100%, rgba(211,47,47,0.12) 0%, transparent 70%);
+}
+.page-hero-tag {
+  font-family: var(--font-cond);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 5px;
+  color: var(--gold);
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.page-hero-tag::before, .page-hero-tag::after {
+  content: '';
+  display: block;
+  width: 30px;
+  height: 2px;
+  background: var(--gold);
+}
+.page-hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 6vw, 5rem);
+  color: var(--white);
+  letter-spacing: 2px;
+  line-height: 1;
+  margin-bottom: 16px;
+  position: relative;
+}
+.page-hero h1 span { color: var(--red); }
+.page-hero p {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.6);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.7;
+  position: relative;
+}
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  font-family: var(--font-cond);
+  font-size: 0.78rem;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  position: relative;
+}
+.breadcrumb a { color: rgba(255,255,255,0.5); text-decoration: none; transition: color 0.2s; }
+.breadcrumb a:hover { color: var(--red); }
+.breadcrumb span { color: var(--gold); }
+
+/* MAIN CONTENT */
+main {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 60px 5% 80px;
+}
+
+/* STATS */
+.trans-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 56px;
+}
+.trans-stat {
+  background: var(--white);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-top: 3px solid var(--red);
+  border-radius: 10px;
+  padding: 22px 12px;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.trans-stat-value {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  color: var(--black);
+  letter-spacing: 1px;
+  line-height: 1.1;
+}
+.trans-stat-label {
+  font-family: var(--font-cond);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--gray);
+  margin-top: 8px;
+}
+
+/* INTRO */
+.transparency-intro {
+  max-width: 760px;
+  margin: 0 auto 44px;
+  text-align: center;
+  color: var(--gray2);
+  font-size: 0.98rem;
+  line-height: 1.7;
+}
+
+/* GRID */
+.transparency-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 50px;
+  align-items: start;
+}
+
+/* DETAILS */
+.transparency-details h3 {
+  font-family: var(--font-cond);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--red-dark);
+  margin-bottom: 18px;
+}
+.trans-list { list-style: none; }
+.trans-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+}
+.trans-list li span {
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--gray);
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.trans-list li strong {
+  font-size: 0.92rem;
+  color: #222;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* ACTIONS */
+.transparency-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 26px;
+}
+.trans-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--red);
+  color: var(--white);
+  font-family: var(--font-cond);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 11px 20px;
+  border-radius: 5px;
+  text-decoration: none;
+  border: 1px solid var(--red);
+  transition: all 0.2s;
+}
+.trans-btn:hover { background: var(--red-dark); transform: translateY(-2px); }
+.trans-btn.outline { background: transparent; color: var(--red-dark); border: 1px solid rgba(211,47,47,0.35); }
+.trans-btn.outline:hover { background: rgba(211,47,47,0.06); }
+
+/* MEDIA — imagem clicável */
+.transparency-media {
+  position: sticky;
+  top: 90px;
+}
+.transparency-media a {
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.12);
+  border: 1px solid rgba(0,0,0,0.1);
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.transparency-media a:hover {
+  box-shadow: 0 16px 40px rgba(211,47,47,0.18);
+  transform: translateY(-3px);
+}
+.transparency-media img {
+  width: 100%;
+  display: block;
+}
+.transparency-caption {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-cond);
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  color: var(--gray);
+  text-align: center;
+}
+.transparency-caption-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--red-dark);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.transparency-caption-link:hover { color: var(--red); }
+
+/* BACK BUTTON */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-cond);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--gray2);
+  text-decoration: none;
+  margin-bottom: 40px;
+  transition: color 0.2s, gap 0.2s;
+}
+.back-btn:hover { color: var(--red); gap: 12px; }
+
+/* FOOTER */
+footer {
+  background: var(--black);
+  color: rgba(255,255,255,0.5);
+  text-align: center;
+  padding: 28px 5%;
+  font-family: var(--font-cond);
+  font-size: 0.78rem;
+  letter-spacing: 1px;
+  border-top: 2px solid rgba(211,47,47,0.2);
+}
+
+/* RESPONSIVE */
+@media (max-width: 880px) {
+  .trans-stats { grid-template-columns: repeat(2, 1fr); }
+  .transparency-grid { grid-template-columns: 1fr; }
+  .nav-links { display: none; }
+  .nav-hamburger { display: flex; }
+  .transparency-media { position: static; }
+}
+@media (max-width: 480px) {
+  .trans-stats { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <img src="" alt="ADB Logo" class="site-logo-img" onerror="this.style.display='none'">
+    <div>
+      <span class="nav-logo-text">ADB</span>
+      <span class="nav-logo-sub">Bernardense</span>
+    </div>
+  </a>
+  <ul class="nav-links">
+    <li><a href="index.html#about">Sobre</a></li>
+    <li><a href="index.html#news">Notícias</a></li>
+    <li><a href="index.html#games">Jogos</a></li>
+    <li><a href="index.html#gallery">Galeria</a></li>
+    <li><a href="index.html#enrollment">Inscrição</a></li>
+    <li><a href="transparencia.html" class="active">Transparência</a></li>
+    <li><a href="index.html#contact">Contato</a></li>
+    <li><a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="nav-instagram">📷 Instagram</a></li>
+  </ul>
+  <div class="nav-hamburger" onclick="document.getElementById('mobile-menu').classList.toggle('open')">
+    <span></span><span></span><span></span>
+  </div>
+</nav>
+
+<div class="mobile-menu" id="mobile-menu">
+  <a href="index.html#about">Sobre</a>
+  <a href="index.html#news">Notícias</a>
+  <a href="index.html#games">Jogos</a>
+  <a href="index.html#gallery">Galeria</a>
+  <a href="index.html#enrollment">Inscrição</a>
+  <a href="transparencia.html">Transparência</a>
+  <a href="index.html#contact">Contato</a>
+  <a href="https://www.instagram.com/a.d.bernardense" target="_blank">📷 Instagram</a>
+</div>
+
+<!-- PAGE HERO -->
+<div class="page-hero">
+  <div class="page-hero-tag">Prestação de Contas</div>
+  <h1>Transparência <span>Financeira</span></h1>
+  <p>Dados públicos e atualizados sobre o convênio da A.D. Bernardense com o Ministério do Esporte.</p>
+  <div class="breadcrumb">
+    <a href="index.html">Início</a>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="9 18 15 12 9 6"/></svg>
+    <span>Transparência</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+
+  <a href="index.html" class="back-btn">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" width="16" height="16"><polyline points="15 18 9 12 15 6"/></svg>
+    Voltar ao site
+  </a>
+
+  <p class="transparency-intro">
+    A A.D. Bernardense é proponente do Termo de Fomento nº 996469, firmado com o Ministério do Esporte
+    através da plataforma +Brasil/Transferegov, para o projeto <strong>"Amigos do Esporte"</strong> no
+    Estado de Goiás. Os dados abaixo são públicos e atualizados diretamente no painel oficial do governo federal.
+  </p>
+
+  <div class="trans-stats">
+    <div class="trans-stat">
+      <div class="trans-stat-value">R$ 313,6 mil</div>
+      <div class="trans-stat-label">Valor Global</div>
+    </div>
+    <div class="trans-stat">
+      <div class="trans-stat-value">Em Execução</div>
+      <div class="trans-stat-label">Situação</div>
+    </div>
+    <div class="trans-stat">
+      <div class="trans-stat-value">1 / 1</div>
+      <div class="trans-stat-label">Instrumentos Assinados</div>
+    </div>
+    <div class="trans-stat">
+      <div class="trans-stat-value">06/2026 – 12/2027</div>
+      <div class="trans-stat-label">Vigência</div>
+    </div>
+  </div>
+
+  <div class="transparency-grid">
+    <div class="transparency-details">
+      <h3>Dados do Instrumento</h3>
+      <ul class="trans-list">
+        <li><span>Nº do Instrumento</span><strong>996469</strong></li>
+        <li><span>Modalidade</span><strong>Termo de Fomento</strong></li>
+        <li><span>Objeto</span><strong>Implementação e Desenvolvimento do Projeto Amigos do Esporte no Estado de Goiás</strong></li>
+        <li><span>Órgão Concedente</span><strong>Ministério do Esporte</strong></li>
+        <li><span>Natureza Jurídica</span><strong>Organização da Sociedade Civil</strong></li>
+        <li><span>CNPJ</span><strong>33.735.492/0001-12</strong></li>
+        <li><span>Início de Vigência</span><strong>17/06/2026</strong></li>
+        <li><span>Fim de Vigência</span><strong>17/12/2027</strong></li>
+      </ul>
+      <div class="transparency-actions">
+        <a class="trans-btn" href="assets/transparencia/instrumentos-assinados.xlsx" download>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Baixar Planilha (.xlsx)
+        </a>
+        <a class="trans-btn outline" id="transparency-link" href="#" target="_blank">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Documento de Transparência (PDF)
+        </a>
+        <a class="trans-btn outline" href="https://dd-publico.serpro.gov.br/extensions/painel/DiscricionariasInicio.html" target="_blank">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Consultar no Portal Oficial
+        </a>
+      </div>
+    </div>
+
+    <div class="transparency-media">
+      <a href="https://dd-publico.serpro.gov.br/extensions/painel/DiscricionariasInicio.html" target="_blank" title="Abrir o painel oficial no Portal Transferegov">
+        <img src="assets/transparencia/WhatsApp_Image_2026-06-25_at_11_24_22.jpeg" alt="Painel público de transparência do Governo Federal — Discricionárias e Legais" loading="lazy">
+      </a>
+      <span class="transparency-caption">Painel público "Discricionárias e Legais" — Plataforma +Brasil / Transferegov · Atualizado em 25/06/2026</span>
+      <a class="transparency-caption-link" href="https://dd-publico.serpro.gov.br/extensions/painel/DiscricionariasInicio.html" target="_blank">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Clique para acessar o portal oficial
+      </a>
+    </div>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <p>© 2017–2026 Associação Desportiva Bernardense. Todos os direitos reservados.</p>
+</footer>
+
+</body>
+</html>

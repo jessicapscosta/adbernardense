@@ -1530,6 +1530,75 @@ section { padding: 90px 5%; }
 }
 .transparency-bar a:hover { color: var(--white); }
 
+/* TRANSPARENCY PREVIEW SECTION */
+.transparency-preview-section {
+  background: var(--black2);
+  padding: 70px 5%;
+  border-top: 2px solid rgba(211,47,47,0.15);
+}
+.transparency-preview-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 60px;
+  align-items: center;
+}
+.transparency-preview-text .section-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-cond);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.trans-preview-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--red);
+  color: var(--white);
+  font-family: var(--font-cond);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 12px 22px;
+  border-radius: 5px;
+  text-decoration: none;
+  transition: background 0.2s, transform 0.2s;
+}
+.trans-preview-btn:hover { background: var(--red-dark); transform: translateY(-2px); }
+.transparency-preview-img a {
+  display: block;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255,255,255,0.07);
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+.transparency-preview-img a:hover {
+  box-shadow: 0 20px 50px rgba(211,47,47,0.25);
+  transform: translateY(-4px);
+}
+.transparency-preview-img img { width: 100%; display: block; }
+.trans-preview-caption {
+  display: block;
+  margin-top: 10px;
+  font-family: var(--font-cond);
+  font-size: 0.7rem;
+  letter-spacing: 0.5px;
+  color: rgba(255,255,255,0.3);
+  text-align: center;
+}
+@media (max-width: 880px) {
+  .transparency-preview-inner { grid-template-columns: 1fr; gap: 36px; }
+  .transparency-preview-img { order: -1; }
+}
+
 /* ============================================
    FOOTER
    ============================================ */
@@ -1983,6 +2052,7 @@ footer {
     <li><a href="#gallery">Galeria</a></li>
     <li><a href="#enrollment">Inscrição</a></li>
     <li><a href="#contact">Contato</a></li>
+    <li><a href="transparencia.html">Transparência</a></li>
     <li><a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="nav-instagram instagram-link">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
       Instagram
@@ -2000,6 +2070,7 @@ footer {
   <a href="#gallery" onclick="toggleMobileMenu()">Galeria</a>
   <a href="#enrollment" onclick="toggleMobileMenu()">Inscrição</a>
   <a href="#contact" onclick="toggleMobileMenu()">Contato</a>
+  <a href="transparencia.html" onclick="toggleMobileMenu()">Transparência</a>
   <a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="instagram-link">📷 Instagram</a>
 </div>
 
@@ -2194,10 +2265,30 @@ footer {
 
 <!-- ============ TRANSPARENCY ============ -->
 <div class="transparency-bar">
-  <a href="#" id="transparency-link" target="_blank">
+  <a href="transparencia.html">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-    Documento de Transparência — Acesse Aqui
+    Transparência — Termo de Fomento nº 996469
   </a>
+</div>
+
+<div class="transparency-preview-section">
+  <div class="transparency-preview-inner">
+    <div class="transparency-preview-text">
+      <div class="section-tag" style="margin-bottom:12px;">Prestação de Contas</div>
+      <h2 style="font-family:var(--font-display);font-size:clamp(1.8rem,3.5vw,2.8rem);letter-spacing:1px;line-height:1.1;margin-bottom:14px;color:var(--white)">Transparência <span style="color:var(--red)">Financeira</span></h2>
+      <p style="color:rgba(255,255,255,0.6);font-size:0.96rem;line-height:1.7;margin-bottom:24px;">A A.D. Bernardense é proponente do Termo de Fomento nº 996469 com o Ministério do Esporte — Projeto <strong style="color:var(--white)">"Amigos do Esporte"</strong>, Estado de Goiás. Valor global: <strong style="color:var(--gold)">R$ 313,6 mil</strong>.</p>
+      <a href="transparencia.html" class="trans-preview-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        Ver página de Transparência
+      </a>
+    </div>
+    <div class="transparency-preview-img">
+      <a href="transparencia.html" title="Ver página de transparência">
+        <img src="assets/transparencia/WhatsApp_Image_2026-06-25_at_11_24_22.jpeg" alt="Painel público Transferegov — Discricionárias e Legais" loading="lazy">
+      </a>
+      <span class="trans-preview-caption">Painel "Discricionárias e Legais" · Transferegov · 25/06/2026</span>
+    </div>
+  </div>
 </div>
 
 <!-- ============ CONTACT ============ -->
@@ -2276,7 +2367,7 @@ footer {
       <h4>Links</h4>
       <ul>
         <li><a href="https://www.instagram.com/a.d.bernardense" target="_blank" class="instagram-link">Instagram</a></li>
-        <li><a href="#" id="transparency-link-footer" onclick="document.getElementById('transparency-link').click()">Transparência</a></li>
+        <li><a href="transparencia.html">Transparência</a></li>
         <li><a href="admin.html">Área Admin</a></li>
       </ul>
     </div>
