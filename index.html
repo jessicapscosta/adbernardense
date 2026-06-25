@@ -6,7 +6,7 @@
 <title id="site-title">Associação Desportiva Bernardense</title>
 <meta name="description" id="meta-desc" content="Associação Desportiva Bernardense - Formando campeões desde 2017">
 <meta name="keywords" id="meta-keywords" content="futebol, associação, bernardense, esporte, crianças">
-<link rel="icon" type="image/x-icon" id="favicon-link" href="">
+<link rel="icon" type="image/x-icon" id="favicon-link" href="assets/favicon.ico">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:ital,wght@0,400;0,600;0,700;0,900;1,400&family=Barlow+Condensed:wght@400;700;900&display=swap" rel="stylesheet">
 <script src="https://static.elfsight.com/platform/platform.js" async></script>
 <script>
@@ -2039,8 +2039,7 @@ footer {
 <!-- ============ NAVIGATION ============ -->
 <nav id="main-nav">
   <a href="#" class="nav-logo">
-    <img src="" alt="ADB Logo" class="site-logo-img" id="nav-logo-img" 
-         onerror="this.style.display='none'"
+    <img src="assets/logo.png" alt="ADB Logo" class="site-logo-img" id="nav-logo-img" 
          style="background:transparent">
     <div>
       <span class="nav-logo-text" style="font-size:1rem;letter-spacing:1px">ASSOCIAÇÃO DESPORTIVA BERNARDENSE</span>
@@ -2286,7 +2285,7 @@ footer {
     </div>
     <div class="transparency-preview-img">
       <a href="transparencia.html" title="Ver página de transparência">
-        <img src="assets/transparencia/WhatsApp_Image_2026-06-25_at_11_24_22.jpeg" alt="Painel público Transferegov — Discricionárias e Legais" loading="lazy">
+        <img src="assets/transparencia/painel-transferegov.jpeg" alt="Painel público Transferegov — Discricionárias e Legais" loading="lazy">
       </a>
       <span class="trans-preview-caption">Painel "Discricionárias e Legais" · Transferegov · 25/06/2026</span>
     </div>
@@ -2350,7 +2349,7 @@ footer {
 <footer>
   <div class="footer-inner">
     <div class="footer-brand">
-      <img src="" alt="ADB" class="site-logo-img" onerror="this.style.display='none'">
+      <img src="assets/logo.png" alt="ADB" class="site-logo-img">
       <div class="footer-brand-name">A.D. Bernardense</div>
       <p id="footer-text">Formando campeões dentro e fora do campo desde 2017. Esporte, educação e comunidade.</p>
     </div>
@@ -2570,49 +2569,6 @@ async function submitEnrollment(e) {
     }, 3000);
   }
 }
-
-// ====================================================
-// CLOUDINARY UPLOAD
-// ====================================================
-window._uploadedUrls = {};
-
-async function uploadToCloudinary(input, previewId, urlKey) {
-  const file = input.files[0];
-  if (!file) return;
-  const cloudName = window.CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = window.CLOUDINARY_UPLOAD_PRESET;
-  const previewEl = document.getElementById(previewId);
-
-  if (cloudName === 'SEU_CLOUD_NAME') {
-    window._uploadedUrls[urlKey] = URL.createObjectURL(file);
-    if (previewEl) {
-      if (file.type === 'application/pdf') {
-        previewEl.textContent = '📄 PDF selecionado: ' + file.name;
-      } else {
-        previewEl.innerHTML = `<img src="${window._uploadedUrls[urlKey]}">`;
-      }
-    }
-    alert('⚠️ Configure o Cloudinary primeiro! Por enquanto salvando localmente.');
-    return;
-  }
-
-  previewEl && (previewEl.innerHTML = '<span style="color:var(--gold);font-family:var(--font-cond);font-size:0.8rem;letter-spacing:1px">Enviando...</span>');
-  const fd = new FormData();
-  fd.append('file', file);
-  fd.append('upload_preset', uploadPreset);
-
-  try {
-    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/upload`, { method: 'POST', body: fd });
-    const data = await res.json();
-    window._uploadedUrls[urlKey] = data.secure_url;
-    if (previewEl) {
-      if (file.type === 'application/pdf') {
-        previewEl.textContent = '✅ PDF enviado: ' + data.secure_url;
-      } else {
-        previewEl.innerHTML = `<img src="${data.secure_url}">`;
-      }
-    }
-    // Apply immediately to site
-    if (urlKey === 'logoUrl') document.querySelectorAll('.site-logo-img').forEach(el => el.src = data.secure_url);
-    if (urlKey === 'faviconUrl') document.getElementById('favicon-link').href = data.secure_url;
-    i
+</script>
+</body>
+</html>
